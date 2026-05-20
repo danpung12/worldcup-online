@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -12,3 +7,136 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id          Int    @id @default(autoincrement())
+  provider    String @default("kakao")
+  provider_id String
+
+  email         String?
+  nickname      String
+  profile_image String?
+
+  games   WorldcupGame[]
+  members RoomMember[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([provider, provider_id])
+}
+
+model WorldcupGame {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+  thumbnail   String?
+
+  items WorldcupItem[]
+
+  creator_id Int
+  creator    User @relation(fields: [creator_id], references: [id], onDelete: Cascade)
+
+  play_count Int @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  room WorldcupRoom[]
+}
+
+model WorldcupItem {
+  id         Int      @id @default(autoincrement())
+  name       String
+  image_url  String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  game_id Int
+  game    WorldcupGame @relation(fields: [game_id], references: [id], onDelete: Cascade)
+
+  match_a   WorldcupMatch[] @relation("MatchItemA")
+  match_b   WorldcupMatch[] @relation("MatchItemB")
+  match_win WorldcupMatch[] @relation("MatchWinner")
+
+  votes WorldcupVote[]
+}
+
+model WorldcupRoom {
+  id Int @id @default(autoincrement())
+
+  game_id Int
+  game    WorldcupGame @relation(fields: [game_id], references: [id], onDelete: Cascade)
+
+  room_code String @unique
+  status    String @default("WAITING")
+
+  member RoomMember[]
+
+  votes WorldcupVote[]
+
+  match WorldcupMatch[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model RoomMember {
+  id         Int      @id @default(autoincrement())
+  nickname   String
+  is_host    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user_id Int?
+  user    User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  vote WorldcupVote[]
+
+  room_id Int
+  room    WorldcupRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+
+  @@unique([room_id, user_id])
+}
+
+model WorldcupMatch {
+  id Int @id @default(autoincrement())
+
+  item_a_id Int
+  item_a    WorldcupItem @relation("MatchItemA", fields: [item_a_id], references: [id], onDelete: Cascade)
+
+  item_b_id Int
+  item_b    WorldcupItem @relation("MatchItemB", fields: [item_b_id], references: [id], onDelete: Cascade)
+
+  winner_id Int?
+  winner    WorldcupItem? @relation("MatchWinner", fields: [winner_id], references: [id], onDelete: SetNull)
+
+  round_id Int
+
+  room_id     Int
+  room        WorldcupRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+  match_index Int
+
+  votes WorldcupVote[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model WorldcupVote {
+  id Int @id @default(autoincrement())
+
+  member_id Int
+  member    RoomMember @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  match_id Int
+  match    WorldcupMatch @relation(fields: [match_id], references: [id], onDelete: Cascade)
+
+  select_item_id Int
+  select_item    WorldcupItem @relation(fields: [select_item_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+
+  room_id Int
+  room    WorldcupRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
+
+  @@unique([member_id, match_id])
+}
