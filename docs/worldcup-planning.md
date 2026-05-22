@@ -201,20 +201,18 @@
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| `GET` | `/worldcups` | 월드컵 목록 조회 |
-| `GET` | `/worldcups/:gameId` | 월드컵 상세 조회 |
-| `POST` | `/worldcups` | 월드컵 생성 |
-| `PATCH` | `/worldcups/:gameId` | 월드컵 수정 |
-| `DELETE` | `/worldcups/:gameId` | 월드컵 삭제 |
+| `GET` | `/worldcup` | 월드컵 목록 조회 |
+| `GET` | `/worldcup/:gameId` | 월드컵 상세 조회 |
+| `POST` | `/worldcup` | 월드컵 생성 |
+| `PATCH` | `/worldcup/:gameId` | 월드컵 수정 |
+| `DELETE` | `/worldcup/:gameId` | 월드컵 삭제 |
 
 ### Worldcup Item
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| `GET` | `/worldcups/:gameId/items` | 월드컵 후보 목록 조회 |
-| `POST` | `/worldcups/:gameId/items` | 월드컵 후보 추가 |
-| `PATCH` | `/worldcup-items/:itemId` | 월드컵 후보 수정 |
-| `DELETE` | `/worldcup-items/:itemId` | 월드컵 후보 삭제 |
+| `POST` | `/worldcup/:gameId/items` | 월드컵 후보 추가 |
+| `DELETE` | `/worldcup/items/:itemId` | 월드컵 후보 삭제 |
 
 ### Room
 
