@@ -218,12 +218,12 @@
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| `POST` | `/worldcup-rooms` | 월드컵 방 생성 |
-| `GET` | `/worldcup-rooms/:inviteCode` | 초대 코드로 방 조회 |
-| `POST` | `/worldcup-rooms/:inviteCode/join` | 방 입장 |
-| `POST` | `/worldcup-rooms/:roomId/start` | 게임 시작 |
-| `GET` | `/worldcup-rooms/:roomId/current-match` | 현재 매치 조회 |
-| `GET` | `/worldcup-rooms/:roomId/result` | 최종 결과 조회 |
+| `POST` | `/room` | 월드컵 방 생성 |
+| `GET` | `/room/:roomCode` | 초대 코드로 방 조회 |
+| `POST` | `/room/:roomCode/join` | 방 입장 |
+| `POST` | `/room/:roomId/start` | 게임 시작 |
+| `GET` | `/room/:roomId/current-match` | 현재 매치 조회 |
+| `GET` | `/room/:roomId/result` | 최종 결과 조회 |
 
 ### Vote
 
