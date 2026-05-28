@@ -25,5 +25,4 @@ export class CreateGameDto {
   @IsString()
   @IsOptional()
   thumbnail?: string;
-
-
+}

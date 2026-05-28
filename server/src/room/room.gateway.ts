@@ -65,6 +65,7 @@ export class RoomGateway {
     const result = await this.roomService.vote(
       client.data.roomCode,
       body.selectItemId,
+      client.data.memberId,
     );
 
     this.server.to(client.data.roomCode).emit('gameUpdate', result);

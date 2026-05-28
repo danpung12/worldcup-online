@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -57,6 +58,15 @@ export class RoomService {
       throw new ForbiddenException('방장만 게임을 시작할 수 있습니다.');
 
     const room = await this.getRoomByCode(roomCode);
+
+    const alreadyStart = await this.prisma.worldcupMatch.findFirst({
+      where: { room_id: room.id },
+    });
+
+    if (alreadyStart) {
+      throw new BadRequestException('이미 시작된 게임입니다.');
+    }
+
     const items = room.game.items.map((item) => item.id);
 
     await this.createMatches(room.id, 1, items);
@@ -116,27 +126,116 @@ export class RoomService {
     });
   }
 
-  //roomCode로 방, 매치 찾기
-  //winner_id 업데이트
-  //다음 매치 결과 리턴
-  async vote(roomCode: string, selectItemId: number) {
+  // 현재 매치에 투표 저장
+  // 전원 투표 완료 시 승자 결정
+  // 동점이면 투표 초기화 후 재투표
+  // 승자 결정 후 다음 매치 또는 다음 라운드 반환
+  async vote(roomCode: string, selectItemId: number, memberId: number) {
     const match = await this.getCurrentMatch(roomCode);
 
-    await this.prisma.worldcupMatch.update({
+    if (selectItemId !== match.item_a_id && selectItemId !== match.item_b_id) {
+      throw new BadRequestException('현재 매치의 후보에만 투표할 수 있습니다.');
+    }
+
+    try {
+      await this.prisma.worldcupVote.create({
+        data: {
+          room_id: match.room_id,
+          match_id: match.id,
+          member_id: memberId,
+          select_item_id: selectItemId,
+        },
+      });
+    } catch (e) {
+      throw new BadRequestException('이미 투표했습니다.');
+    }
+
+    const memberCount = await this.prisma.roomMember.count({
       where: {
-        id: match.id,
-      },
-      data: {
-        winner_id: selectItemId,
+        room_id: match.room_id,
       },
     });
+
+    const voteCount = await this.prisma.worldcupVote.count({
+      where: {
+        match_id: match.id,
+      },
+    });
+
+    if (voteCount < memberCount) {
+      return {
+        status: 'voting' as const,
+      };
+    } else {
+      const result = await this.decideMatchWinner(match.id);
+
+      if (result.status === 'tie') {
+        await this.prisma.worldcupVote.deleteMany({
+          where: {
+            match_id: match.id,
+          },
+        });
+        return {
+          match,
+          status: 'tie' as const,
+        };
+      }
+    }
 
     const allMatch = await this.getRoundMatches(match.room_id, match.round_id);
     if (allMatch.every((match) => match.winner_id !== null)) {
       return this.createNextRound(roomCode, match);
     }
 
-    return this.getCurrentMatch(roomCode);
+    return {
+      status: 'nextMatch' as const,
+      match: await this.getCurrentMatch(roomCode),
+    };
+  }
+
+  async decideMatchWinner(matchId: number) {
+    const match = await this.prisma.worldcupMatch.findUnique({
+      where: {
+        id: matchId,
+      },
+    });
+
+    if (!match) throw new NotFoundException('매치를 찾을 수 없습니다. ');
+
+    const AVoteCount = await this.prisma.worldcupVote.count({
+      where: {
+        match_id: matchId,
+        select_item_id: match.item_a_id,
+      },
+    });
+
+    const BVoteCount = await this.prisma.worldcupVote.count({
+      where: {
+        match_id: matchId,
+        select_item_id: match.item_b_id,
+      },
+    });
+
+    if (AVoteCount === BVoteCount) {
+      return { status: 'tie' as const };
+    }
+
+    const winnerId =
+      AVoteCount > BVoteCount ? match.item_a_id : match.item_b_id;
+
+    await this.prisma.worldcupMatch.update({
+      where: {
+        id: match.id,
+      },
+      data: {
+        winner_id: winnerId,
+      },
+    });
+
+    return {
+      status: 'winner' as const,
+      winnerId,
+    };
   }
 
   async createNextRound(roomCode, match) {
@@ -182,6 +281,6 @@ export class RoomService {
       },
     });
 
-    return  member;
+    return member;
   }
 }

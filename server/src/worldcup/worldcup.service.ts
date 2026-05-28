@@ -55,7 +55,6 @@ export class WorldcupService {
       },
       include: {
         items: true,
-        play_count: true,
       },
     });
   }
