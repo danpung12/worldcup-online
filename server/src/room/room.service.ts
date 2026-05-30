@@ -281,6 +281,8 @@ export class RoomService {
       },
     });
 
-    return member;
+    const updateRoom = await this.getRoomByCode(roomCode);
+
+    return { room: updateRoom, member };
   }
 }

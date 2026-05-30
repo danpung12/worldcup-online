@@ -22,7 +22,7 @@ export class RoomGateway {
     @MessageBody() body: { roomCode: string; nickname: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const member = await this.roomService.joinRoom(
+    const { room, member } = await this.roomService.joinRoom(
       body.roomCode,
       body.nickname,
     );
@@ -31,7 +31,9 @@ export class RoomGateway {
     client.data.roomCode = body.roomCode;
     client.data.memberId = member.id;
 
-    return { message: '방에 입장했습니다.' };
+    this.server.to(body.roomCode).emit('roomUpdate', room);
+
+    return { message: '방에 입장했습니다.', member, room };
   }
 
   //방 생성
