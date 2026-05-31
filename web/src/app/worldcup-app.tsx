@@ -505,10 +505,10 @@ function HomeView({
     <section className="pb-8">
       <div className="bg-white px-5 pb-7 pt-8">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-          친구와 링크로 같이 고르는
+          친구와 같이 고르는
         </p>
         <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px]">
-          오늘의 이상형 월드컵.
+          온라인 이상형 월드컵
         </h1>
         <label className="mt-6 flex h-11 items-center gap-2 rounded-full border border-black/10 bg-white px-4 text-[17px] tracking-[-0.374px]">
           <Search className="size-4 text-[#7a7a7a]" />

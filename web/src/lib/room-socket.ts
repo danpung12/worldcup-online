@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import { apiBaseUrl } from "@/lib/worldcup";
+import { socketBaseUrl } from "@/lib/worldcup";
 
 type RoomMemberResponse = {
   id: number;
@@ -66,7 +66,7 @@ type JoinRoomAck = {
 let socket: Socket | null = null;
 
 export function getRoomSocket() {
-  socket ??= io(apiBaseUrl, {
+  socket ??= io(socketBaseUrl, {
     autoConnect: false,
     transports: ["websocket", "polling"],
   });

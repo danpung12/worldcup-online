@@ -52,8 +52,15 @@ export const queryKeys = {
   games: ["worldcup", "games"] as const,
 };
 
+const defaultApiBaseUrl =
+  process.env.NODE_ENV === "production"
+    ? "https://worldcupapi.duckdns.org"
+    : "http://localhost:4000";
+
 export const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_URL ?? defaultApiBaseUrl;
+export const socketBaseUrl =
+  process.env.NEXT_PUBLIC_SOCKET_URL ?? apiBaseUrl;
 
 const imageUrl = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;

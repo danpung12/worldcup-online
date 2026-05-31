@@ -9,7 +9,11 @@ import { RoomService } from './room.service';
 import { Server, Socket } from 'socket.io';
 import { CreateRoomDto } from './dto/create-room.dto';
 
-@WebSocketGateway({ cors: { origin: 'http://localhost:3000' } })
+@WebSocketGateway({
+  cors: {
+    origin: ['http://localhost:3000', 'https://worldcup-online.vercel.app'],
+  },
+})
 export class RoomGateway {
   constructor(private readonly roomService: RoomService) {}
 
