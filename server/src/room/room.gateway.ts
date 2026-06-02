@@ -8,6 +8,7 @@ import {
 import { RoomService } from './room.service';
 import { Server, Socket } from 'socket.io';
 import { CreateRoomDto } from './dto/create-room.dto';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway({
   cors: {
@@ -15,7 +16,10 @@ import { CreateRoomDto } from './dto/create-room.dto';
   },
 })
 export class RoomGateway {
-  constructor(private readonly roomService: RoomService) {}
+  constructor(
+    private readonly roomService: RoomService,
+    private readonly chatService: ChatService,
+  ) {}
 
   @WebSocketServer()
   server!: Server;
@@ -37,6 +41,9 @@ export class RoomGateway {
     client.data.memberId = member.id;
 
     this.server.to(body.roomCode).emit('roomUpdate', room);
+
+    const chats = this.chatService.getChats(body.roomCode);
+    client.emit('chatHistory', chats);
 
     return { message: '방에 입장했습니다.', member, room };
   }
@@ -82,5 +89,20 @@ export class RoomGateway {
     this.server.to(client.data.roomCode).emit('gameUpdate', result);
 
     return result;
+  }
+
+
+  @SubscribeMessage('sendChat')
+  sendChat(
+    @MessageBody() body: { message: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const chat = this.chatService.sendChat(client.data.roomCode, {
+      memberId: client.data.memberId,
+      message: body.message,
+      createdAt: new Date(),
+    });
+
+    this.server.to(client.data.roomCode).emit('chatUpdate', chat)
   }
 }

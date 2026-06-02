@@ -14,6 +14,7 @@ import {
   Plus,
   Play,
   Search,
+  Send,
   Share2,
   Shuffle,
   SquareCheck,
@@ -25,11 +26,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createRoom,
   joinRoom,
+  onChatHistory,
+  onChatUpdate,
   onGameUpdate,
   onRoomUpdate,
   onSocketException,
+  sendChat,
   startGame,
   vote,
+  type ChatResponse,
   type GameUpdateResponse,
   type MatchResponse,
   type RoomMemberResponse,
@@ -87,8 +92,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [currentMatch, setCurrentMatch] = useState<MatchResponse | null>(null);
   const [winnerId, setWinnerId] = useState<number | null>(null);
   const [gameNotice, setGameNotice] = useState<string | null>(null);
+  const [activeRoundSize, setActiveRoundSize] = useState<number | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
@@ -122,6 +129,20 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       if (nextMatchTimerRef.current) {
         clearTimeout(nextMatchTimerRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const offChatHistory = onChatHistory((chats) => {
+      setChatMessages(chats ?? []);
+    });
+    const offChatUpdate = onChatUpdate((chat) => {
+      setChatMessages((current) => [...current, chat].slice(-50));
+    });
+
+    return () => {
+      offChatHistory();
+      offChatUpdate();
     };
   }, []);
 
@@ -259,6 +280,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     clearNextMatchTimer();
     setGameNotice(null);
     setVoteStamps([]);
+    setActiveRoundSize(roundSize ?? selectedGame.participants);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
   }
@@ -281,6 +303,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     setCurrentMatch(null);
     setWinnerId(null);
     setGameNotice(null);
+    setActiveRoundSize(null);
+    setChatMessages([]);
     setVoteStamps([]);
 
     if (initialRoomCode) {
@@ -310,6 +334,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       };
 
       setCurrentMember(memberContext);
+      setChatMessages([]);
       enterLobby(
         result.roomCode ?? result.room.room_code,
         mapRoomMembers(
@@ -338,6 +363,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     };
 
     setCurrentMember(memberContext);
+    setChatMessages([]);
     enterLobby(
       result.roomCode ?? result.room.room_code,
       mapRoomMembers(
@@ -348,12 +374,17 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     );
   }
 
+  function handleSendChat(message: string) {
+    sendChat(message);
+  }
+
   return (
     <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
       <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#f5f5f7]">
         <AppChrome
           title={titleByView[view]}
           canGoBack={view !== "home"}
+          showBrandBar={view !== "play"}
           onBack={handleBackToHome}
           onCreate={() => setView("create")}
         />
@@ -381,9 +412,13 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         {view === "play" && currentMatch && (
           <PlayView
             isVoting={isVoting}
+            activeRoundSize={activeRoundSize ?? getDefaultRoundSize(selectedGame.participants) ?? selectedGame.participants}
+            messages={chatMessages}
             match={currentMatch}
             notice={gameNotice}
+            onSendChat={handleSendChat}
             onVote={handleVote}
+            players={players}
             voteStamps={voteStamps}
           />
         )}
@@ -612,11 +647,13 @@ function ExpandedMedia({
 function AppChrome({
   title,
   canGoBack,
+  showBrandBar = true,
   onBack,
   onCreate,
 }: {
   title: string;
   canGoBack: boolean;
+  showBrandBar?: boolean;
   onBack: () => void;
   onCreate: () => void;
 }) {
@@ -636,6 +673,7 @@ function AppChrome({
           <Share2 className="size-4" />
         </button>
       </header>
+      {showBrandBar && (
       <div className="sticky top-0 z-10 flex h-[52px] items-center justify-between border-b border-black/5 bg-[#f5f5f7]/90 px-4 backdrop-blur-xl">
         <strong className="text-[21px] font-semibold leading-none tracking-[0.231px]">Worldcup</strong>
         <button
@@ -646,6 +684,7 @@ function AppChrome({
           만들기
         </button>
       </div>
+      )}
     </>
   );
 }
@@ -1252,6 +1291,16 @@ function getDefaultRoundSize(candidateCount: number) {
   return getRoundSizeOptions(candidateCount).at(-1);
 }
 
+function getMatchRoundLabel(match: MatchResponse, activeRoundSize: number) {
+  const roundSize = Math.max(
+    2,
+    Math.floor(activeRoundSize / 2 ** Math.max(match.round_id - 1, 0)),
+  );
+  const totalMatches = Math.max(1, Math.ceil(roundSize / 2));
+
+  return `${roundSize}강 · 매치 ${match.match_index}/${totalMatches}`;
+}
+
 function LobbyView({
   game,
   isCurrentHost,
@@ -1291,7 +1340,7 @@ function LobbyView({
 
   return (
     <section className="pb-24">
-      <div className="bg-white px-5 pb-6 pt-7">
+      <div className="bg-white px-4 pb-3 pt-4">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">함께 플레이할 월드컵</p>
         <h1 className="mt-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.374px]">{game.title}</h1>
         <div className="mt-4 flex items-center justify-between rounded-[18px] bg-[#f5f5f7] px-4 py-3">
@@ -1438,32 +1487,42 @@ function LobbyView({
 }
 
 function PlayView({
+  activeRoundSize,
   isVoting,
+  messages,
   match,
   notice,
+  onSendChat,
   onVote,
+  players,
   voteStamps,
 }: {
+  activeRoundSize: number;
   isVoting: boolean;
+  messages: ChatResponse[];
   match: MatchResponse;
   notice: string | null;
+  onSendChat: (message: string) => void;
   onVote: (selectItemId: number) => void;
+  players: Player[];
   voteStamps: VoteStamp[];
 }) {
+  const roundLabel = getMatchRoundLabel(match, activeRoundSize);
+
   return (
-    <section className="pb-8">
-      <div className="bg-white px-5 pb-6 pt-7">
-        <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-          Round {match.round_id} · Match {match.match_index}
+    <section className="flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3">
+      <div className="bg-white px-4 pb-3 pt-4">
+        <p className="text-[13px] leading-[1.43] tracking-[-0.12px] text-[#7a7a7a]">
+          {roundLabel}
         </p>
         {notice && (
-          <p className="mt-3 rounded-2xl bg-[#f5f5f7] px-4 py-3 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#0066cc]">
+          <p className="mt-2 rounded-2xl bg-[#f5f5f7] px-3 py-2 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#0066cc]">
             {notice}
           </p>
         )}
       </div>
 
-      <div className="grid gap-3 px-4 py-4">
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)] items-stretch gap-2 px-3 py-3">
         <VoteCard
           disabled={isVoting}
           item={match.item_a}
@@ -1471,7 +1530,7 @@ function PlayView({
           onSelect={() => onVote(match.item_a_id)}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
         />
-        <div className="text-center text-[13px] font-semibold tracking-[-0.12px] text-[#7a7a7a]">
+        <div className="flex items-center justify-center text-[12px] font-semibold tracking-[-0.12px] text-[#7a7a7a]">
           VS
         </div>
         <VoteCard
@@ -1481,6 +1540,10 @@ function PlayView({
           onSelect={() => onVote(match.item_b_id)}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_b_id)}
         />
+      </div>
+
+      <div className="min-h-0 flex-1 px-3">
+        <ChatPanel messages={messages} onSend={onSendChat} players={players} />
       </div>
     </section>
   );
@@ -1501,32 +1564,134 @@ function VoteCard({
 }) {
   return (
     <button
-      className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white text-left active:scale-[0.99] disabled:opacity-60"
+      className="flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white text-left active:scale-[0.99] disabled:opacity-60"
       type="button"
       disabled={disabled}
       onClick={onSelect}
     >
-      <div className="relative">
+      <div className="relative min-h-0">
         <MediaPreview
           alt={`${item.name} 후보 이미지`}
-          className="aspect-[16/11] w-full"
+          className="aspect-[3/4] w-full"
           src={item.image_url}
         />
         <VoteStampLayer stamps={stamps} />
       </div>
-      <div className="flex items-center justify-between px-4 py-4">
-        <div>
+      <div className="flex flex-1 flex-col justify-between gap-3 px-3 py-3">
+        <div className="min-w-0">
           <p className="text-[12px] font-semibold tracking-[-0.12px] text-[#0066cc]">{label}</p>
-          <strong className="text-[22px] font-semibold tracking-[0.231px] text-[#1d1d1f]">
+          <strong className="mt-0.5 line-clamp-2 block text-[17px] font-semibold leading-[1.22] tracking-[-0.374px] text-[#1d1d1f]">
             {item.name}
           </strong>
         </div>
-        <span className="inline-flex h-10 items-center rounded-full bg-[#0066cc] px-4 text-[15px] tracking-[-0.224px] text-white">
+        <span className="inline-flex h-9 items-center justify-center rounded-full bg-[#0066cc] px-3 text-[14px] tracking-[-0.224px] text-white">
           선택
         </span>
       </div>
     </button>
   );
+}
+
+function ChatPanel({
+  messages,
+  onSend,
+  players,
+}: {
+  messages: ChatResponse[];
+  onSend: (message: string) => void;
+  players: Player[];
+}) {
+  const [message, setMessage] = useState("");
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }, [messages.length]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedMessage = message.trim();
+
+    if (!trimmedMessage) {
+      return;
+    }
+
+    onSend(trimmedMessage);
+    setMessage("");
+  }
+
+  return (
+    <section className="flex h-full min-h-[210px] flex-col overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#fafafc] px-3 py-3"
+      >
+        {messages.map((chat, index) => {
+            const player = players.find((currentPlayer) => currentPlayer.id === chat.memberId);
+
+            return (
+              <div key={`${chat.memberId}-${chat.createdAt}-${index}`} className="flex items-start gap-2">
+                <Image
+                  alt={`${player?.name ?? "참가자"} 아바타`}
+                  className="mt-0.5 size-8 shrink-0 rounded-full border border-black/10 bg-white"
+                  height={32}
+                  src={player?.avatar ?? getAvatarForName(String(chat.memberId))}
+                  unoptimized
+                  width={32}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="max-w-[120px] truncate text-[12px] font-semibold tracking-[-0.12px] text-[#333333]">
+                      {player?.name ?? "참가자"}
+                    </span>
+                    <time className="text-[11px] tracking-[-0.12px] text-[#8a8a8e]">
+                      {formatChatTime(chat.createdAt)}
+                    </time>
+                  </div>
+                  <p className="mt-0.5 break-words rounded-2xl rounded-tl-md bg-white px-3 py-2 text-[14px] leading-[1.35] tracking-[-0.224px] text-[#1d1d1f] shadow-sm">
+                    {chat.message}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+      <form className="flex items-center gap-2 border-t border-[#f0f0f0] bg-white p-2.5" onSubmit={handleSubmit}>
+        <input
+          className="h-10 min-w-0 flex-1 rounded-full bg-[#f5f5f7] px-4 text-[15px] tracking-[-0.224px] outline-none placeholder:text-[#8a8a8e] focus:ring-4 focus:ring-[#0066cc]/10"
+          maxLength={120}
+          placeholder="메시지"
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+        />
+        <button
+          aria-label="채팅 보내기"
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white active:scale-95 disabled:bg-[#8bbbe8]"
+          type="submit"
+          disabled={message.trim().length === 0}
+        >
+          <Send className="size-4" />
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function formatChatTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function VoteStampLayer({ stamps }: { stamps: VoteStamp[] }) {

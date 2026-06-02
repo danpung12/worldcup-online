@@ -58,6 +58,12 @@ type GameUpdateResponse =
       finished: true;
     };
 
+type ChatResponse = {
+  memberId: number;
+  message: string;
+  createdAt: string;
+};
+
 type CreateRoomAck = {
   message: string;
   roomCode: string;
@@ -133,6 +139,16 @@ export async function vote(selectItemId: number) {
   }) as Promise<GameUpdateResponse>;
 }
 
+export function sendChat(message: string) {
+  const activeSocket = getRoomSocket();
+
+  if (!activeSocket.connected) {
+    activeSocket.connect();
+  }
+
+  activeSocket.emit("sendChat", { message });
+}
+
 export function onRoomUpdate(callback: (room: RoomResponse) => void) {
   const activeSocket = getRoomSocket();
 
@@ -153,6 +169,26 @@ export function onGameUpdate(callback: (update: GameUpdateResponse) => void) {
   };
 }
 
+export function onChatHistory(callback: (chats: ChatResponse[]) => void) {
+  const activeSocket = getRoomSocket();
+
+  activeSocket.on("chatHistory", callback);
+
+  return () => {
+    activeSocket.off("chatHistory", callback);
+  };
+}
+
+export function onChatUpdate(callback: (chat: ChatResponse) => void) {
+  const activeSocket = getRoomSocket();
+
+  activeSocket.on("chatUpdate", callback);
+
+  return () => {
+    activeSocket.off("chatUpdate", callback);
+  };
+}
+
 export function onSocketException(callback: (error: unknown) => void) {
   const activeSocket = getRoomSocket();
 
@@ -164,6 +200,7 @@ export function onSocketException(callback: (error: unknown) => void) {
 }
 
 export type {
+  ChatResponse,
   GameUpdateResponse,
   MatchResponse,
   RoomMemberResponse,
