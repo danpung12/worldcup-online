@@ -94,14 +94,14 @@ export async function joinRoom(payload: { roomCode: string; nickname: string }) 
   return activeSocket.timeout(5000).emitWithAck("joinRoom", payload) as Promise<JoinRoomAck>;
 }
 
-export function startGame() {
+export function startGame(payload?: { roundSize?: number }) {
   const activeSocket = getRoomSocket();
 
   if (!activeSocket.connected) {
     activeSocket.connect();
   }
 
-  activeSocket.emit("startGame");
+  activeSocket.emit("startGame", payload ?? {});
 }
 
 export async function vote(selectItemId: number) {

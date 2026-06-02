@@ -55,10 +55,14 @@ export class RoomGateway {
   }
 
   @SubscribeMessage('startGame')
-  async startGame(@ConnectedSocket() client: Socket) {
+  async startGame(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { roundSize: number },
+  ) {
     const result = await this.roomService.startGame(
       client.data.roomCode,
       client.data.memberId,
+      body.roundSize,
     );
     this.server.to(client.data.roomCode).emit('gameUpdate', result);
   }

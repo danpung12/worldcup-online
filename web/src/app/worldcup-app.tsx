@@ -49,6 +49,7 @@ type WorldcupAppProps = {
   initialRoomCode?: string;
 };
 type HomeSortMode = "popular" | "latest";
+const validRoundSizes = [8, 16, 32, 64, 128];
 
 export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const router = useRouter();
@@ -175,10 +176,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     };
   }, [applyGameUpdate, currentMember, setPlayers]);
 
-  function handleStartGame() {
+  function handleStartGame(roundSize?: number) {
     setGameNotice(null);
     setIsStarting(true);
-    startGame();
+    startGame(roundSize ? { roundSize } : undefined);
   }
 
   async function handleVote(selectItemId: number) {
@@ -1059,6 +1060,14 @@ function ProfileView({
   );
 }
 
+function getRoundSizeOptions(candidateCount: number) {
+  return validRoundSizes.filter((size) => size <= candidateCount);
+}
+
+function getDefaultRoundSize(candidateCount: number) {
+  return getRoundSizeOptions(candidateCount).at(-1);
+}
+
 function LobbyView({
   game,
   isCurrentHost,
@@ -1071,12 +1080,22 @@ function LobbyView({
   isCurrentHost: boolean;
   isStarting: boolean;
   notice: string | null;
-  onStart: () => void;
+  onStart: (roundSize?: number) => void;
   roomCode: string;
 }) {
   const players = useWorldcupStore((state) => state.players);
   const [hasCopiedInvite, setHasCopiedInvite] = useState(false);
+  const [selectedRoundSize, setSelectedRoundSize] = useState<number | undefined>(
+    () => getDefaultRoundSize(game.participants),
+  );
   const emptyCount = Math.max(6 - players.length, 0);
+  const roundSizeOptions = getRoundSizeOptions(game.participants);
+  const activeRoundSize =
+    selectedRoundSize && roundSizeOptions.includes(selectedRoundSize)
+      ? selectedRoundSize
+      : getDefaultRoundSize(game.participants);
+  const canStartWithRoundSize =
+    roundSizeOptions.length > 0 || game.participants === 2 || game.participants === 4;
 
   async function copyInviteLink() {
     const inviteLink = `${window.location.origin}/room/${roomCode}`;
@@ -1155,19 +1174,51 @@ function LobbyView({
           <div className="border-b border-[#e0e0e0] px-4 py-4">
             <h2 className="text-[21px] font-semibold tracking-[0.231px]">사전 설정</h2>
             <p className="mt-1 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-              제한 시간, 라운드 옵션, 공개 범위는 나중에 추가합니다.
+              시작할 라운드 크기를 선택해주세요.
             </p>
           </div>
-          <div className="grid min-h-[210px] place-items-center px-5 py-8 text-center">
-            <div>
-              <div className="mx-auto grid size-14 place-items-center rounded-full bg-[#f5f5f7] text-[#0066cc]">
-                <Trophy className="size-6" />
+          <div className="px-4 py-4">
+            {roundSizeOptions.length > 0 ? (
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[15px] font-semibold tracking-[-0.224px] text-[#1d1d1f]">라운드 선택</p>
+                    <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
+                      후보 {game.participants.toLocaleString()}개 중 시작할 크기를 고르세요.
+                    </p>
+                  </div>
+                  <Trophy className="size-5 shrink-0 text-[#0066cc]" />
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {roundSizeOptions.map((roundSize) => (
+                    <button
+                      key={roundSize}
+                      className={`h-11 rounded-full border text-[15px] tracking-[-0.224px] active:scale-95 disabled:active:scale-100 ${
+                        activeRoundSize === roundSize
+                          ? "border-[#0066cc] bg-[#0066cc] text-white disabled:opacity-100"
+                          : "border-[#d2d2d7] bg-white text-[#1d1d1f] disabled:opacity-70"
+                      }`}
+                      type="button"
+                      disabled={!isCurrentHost}
+                      onClick={() => setSelectedRoundSize(roundSize)}
+                    >
+                      {roundSize}강
+                    </button>
+                  ))}
+                </div>
+                {!isCurrentHost && (
+                  <p className="mt-3 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
+                    방장이 라운드를 선택할 수 있습니다.
+                  </p>
+                )}
               </div>
-              <p className="mt-4 text-[17px] font-semibold tracking-[-0.374px]">아직 설정이 없습니다.</p>
-              <p className="mt-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-                지금은 바로 시작하는 로비 UI만 잡아둡니다.
-              </p>
-            </div>
+            ) : (
+              <div className="rounded-2xl bg-[#f5f5f7] px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+                {canStartWithRoundSize
+                  ? "후보가 8개 미만이라 전체 후보로 시작합니다."
+                  : "후보 수를 2개, 4개 또는 8개 이상으로 맞춰야 시작할 수 있습니다."}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -1181,8 +1232,8 @@ function LobbyView({
             <button
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8]"
               type="button"
-              disabled={isStarting}
-              onClick={onStart}
+              disabled={isStarting || !canStartWithRoundSize}
+              onClick={() => onStart(activeRoundSize)}
             >
               <Play className="size-4 fill-white" />
               {isStarting ? "시작 중" : "시작"}

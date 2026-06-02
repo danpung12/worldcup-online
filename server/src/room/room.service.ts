@@ -51,7 +51,7 @@ export class RoomService {
     return room;
   }
 
-  async startGame(roomCode: string, memberId: number) {
+  async startGame(roomCode: string, memberId: number, roundSize?: number) {
     const host = await this.checkHost(roomCode, memberId);
 
     if (!host)
@@ -63,13 +63,34 @@ export class RoomService {
       where: { room_id: room.id },
     });
 
+
+    // 이미 시작한 게임이 있을 경우 다시 시작하지 않도록 예외처리
     if (alreadyStart) {
       throw new BadRequestException('이미 시작된 게임입니다.');
     }
 
     const items = room.game.items.map((item) => item.id);
 
-    await this.createMatches(room.id, 1, items);
+    // 라운드 수 보다 선택한 강이 많을 경우 예외처리
+    if (roundSize && roundSize > items.length) {
+      throw new BadRequestException(
+        `${items.length}개보다 많이 선택할 수 없습니다.`,
+      );
+    }
+
+
+    // 8, 16, 32, 64, 128강만 가능하도록 예외처리.
+    const ValidRounds = [8, 16, 32, 64, 128];
+
+    if (roundSize && !ValidRounds.includes(roundSize)) {
+      throw new BadRequestException('지원하지 않는 라운드입니다.');
+    }
+
+    const randomItems = [...items].sort(() => Math.random() - 0.5);
+
+    const sizeItems = roundSize ? randomItems.slice(0, roundSize) : randomItems;
+
+    await this.createMatches(room.id, 1, sizeItems);
 
     return this.getCurrentMatch(roomCode);
   }
