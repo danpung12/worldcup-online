@@ -35,6 +35,10 @@ type GameUpdateResponse =
   | MatchResponse
   | {
       status: "voting";
+      vote?: {
+        memberId: number;
+        selectItemId: number;
+      };
     }
   | {
       status: "tie";
@@ -43,6 +47,10 @@ type GameUpdateResponse =
   | {
       status: "nextMatch";
       match: MatchResponse;
+      vote?: {
+        memberId: number;
+        selectItemId: number;
+      };
     }
   | {
       winnerId: number;

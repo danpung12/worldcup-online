@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   BarChart3,
@@ -49,6 +49,16 @@ type WorldcupAppProps = {
   initialRoomCode?: string;
 };
 type HomeSortMode = "popular" | "latest";
+type VoteStamp = {
+  avatar: string;
+  memberId: number;
+  name: string;
+  rotate: number;
+  scale: number;
+  selectItemId: number;
+  x: number;
+  y: number;
+};
 const validRoundSizes = [8, 16, 32, 64, 128];
 
 export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
@@ -79,6 +89,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [gameNotice, setGameNotice] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
+  const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
     games.find((game) => game.id === selectedGameId) ?? games[0] ?? mockGames[0];
   const currentPlayer = currentMember
@@ -105,22 +117,63 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     }
   }, [initialRoomCode, setView]);
 
+  useEffect(() => {
+    return () => {
+      if (nextMatchTimerRef.current) {
+        clearTimeout(nextMatchTimerRef.current);
+      }
+    };
+  }, []);
+
+  const clearNextMatchTimer = useCallback(() => {
+    if (nextMatchTimerRef.current) {
+      clearTimeout(nextMatchTimerRef.current);
+      nextMatchTimerRef.current = null;
+    }
+  }, []);
+
+  const addVoteStamp = useCallback(
+    (vote: { memberId: number; selectItemId: number }) => {
+      const player = players.find((currentPlayer) => currentPlayer.id === vote.memberId);
+
+      setVoteStamps((current) => {
+        const stamp = createVoteStamp({
+          avatar: player?.avatar ?? getAvatarForName(String(vote.memberId)),
+          matchId: currentMatch?.id ?? 0,
+          memberId: vote.memberId,
+          name: player?.name ?? "참가자",
+          selectItemId: vote.selectItemId,
+        });
+
+        return [
+          ...current.filter((currentStamp) => currentStamp.memberId !== stamp.memberId),
+          stamp,
+        ];
+      });
+    },
+    [currentMatch?.id, players],
+  );
+
   const applyGameUpdate = useCallback(
     (update: GameUpdateResponse) => {
       setIsStarting(false);
       setIsVoting(false);
 
       if (isMatchResponse(update)) {
+        clearNextMatchTimer();
         setCurrentMatch(update);
         setWinnerId(null);
         setGameNotice(null);
+        setVoteStamps([]);
         setView("play");
         return;
       }
 
       if ("finished" in update && update.finished) {
+        clearNextMatchTimer();
         setWinnerId(update.winnerId);
         setGameNotice("월드컵이 종료되었습니다.");
+        setVoteStamps([]);
         setView("result");
         return;
       }
@@ -130,24 +183,49 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       }
 
       if (update.status === "voting") {
+        if (update.vote) {
+          addVoteStamp(update.vote);
+        }
         setGameNotice("다른 플레이어의 선택을 기다리는 중입니다.");
         return;
       }
 
       if (update.status === "tie") {
+        clearNextMatchTimer();
         setCurrentMatch(update.match);
+        setVoteStamps([]);
         setGameNotice("동점입니다. 같은 매치를 다시 투표해주세요.");
         setView("play");
         return;
       }
 
       if (update.status === "nextMatch") {
-        setCurrentMatch(update.match);
-        setGameNotice(null);
-        setView("play");
+        if (!update.vote) {
+          clearNextMatchTimer();
+          setCurrentMatch(update.match);
+          setVoteStamps([]);
+          setGameNotice(null);
+          setView("play");
+          return;
+        }
+
+        addVoteStamp(update.vote);
+        setGameNotice("다음 매치로 넘어갑니다.");
+
+        if (nextMatchTimerRef.current) {
+          clearTimeout(nextMatchTimerRef.current);
+        }
+
+        nextMatchTimerRef.current = setTimeout(() => {
+          setCurrentMatch(update.match);
+          setVoteStamps([]);
+          setGameNotice(null);
+          setView("play");
+          nextMatchTimerRef.current = null;
+        }, 1000);
       }
     },
-    [setView],
+    [addVoteStamp, clearNextMatchTimer, setView],
   );
 
   useEffect(() => {
@@ -177,7 +255,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   }, [applyGameUpdate, currentMember, setPlayers]);
 
   function handleStartGame(roundSize?: number) {
+    clearNextMatchTimer();
     setGameNotice(null);
+    setVoteStamps([]);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
   }
@@ -195,10 +275,12 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   }
 
   function handleBackToHome() {
+    clearNextMatchTimer();
     setView("home");
     setCurrentMatch(null);
     setWinnerId(null);
     setGameNotice(null);
+    setVoteStamps([]);
 
     if (initialRoomCode) {
       router.replace("/");
@@ -299,6 +381,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             match={currentMatch}
             notice={gameNotice}
             onVote={handleVote}
+            voteStamps={voteStamps}
           />
         )}
         {view === "result" && (
@@ -348,6 +431,54 @@ function readSocketError(error: unknown) {
   }
 
   return "게임 요청을 처리하지 못했습니다.";
+}
+
+function createVoteStamp({
+  avatar,
+  matchId,
+  memberId,
+  name,
+  selectItemId,
+}: {
+  avatar: string;
+  matchId: number;
+  memberId: number;
+  name: string;
+  selectItemId: number;
+}): VoteStamp {
+  const seed = hashVoteStamp(`${matchId}:${memberId}:${selectItemId}`);
+  const x = 50 + (seedToUnit(seed) - 0.5) * 30;
+  const y = 50 + (seedToUnit(seed * 17) - 0.5) * 24;
+  const rotate = (seedToUnit(seed * 31) - 0.5) * 18;
+  const scale = 0.94 + seedToUnit(seed * 47) * 0.12;
+
+  return {
+    avatar,
+    memberId,
+    name,
+    rotate,
+    scale,
+    selectItemId,
+    x,
+    y,
+  };
+}
+
+function hashVoteStamp(value: string) {
+  let hash = 2166136261;
+
+  for (const char of value) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function seedToUnit(seed: number) {
+  const next = Math.imul(seed ^ (seed >>> 16), 2246822507) >>> 0;
+
+  return next / 4294967295;
 }
 
 function getYouTubeId(url: string) {
@@ -1258,11 +1389,13 @@ function PlayView({
   match,
   notice,
   onVote,
+  voteStamps,
 }: {
   isVoting: boolean;
   match: MatchResponse;
   notice: string | null;
   onVote: (selectItemId: number) => void;
+  voteStamps: VoteStamp[];
 }) {
   return (
     <section className="pb-8">
@@ -1283,6 +1416,7 @@ function PlayView({
           item={match.item_a}
           label="A"
           onSelect={() => onVote(match.item_a_id)}
+          stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
         />
         <div className="text-center text-[13px] font-semibold tracking-[-0.12px] text-[#7a7a7a]">
           VS
@@ -1292,6 +1426,7 @@ function PlayView({
           item={match.item_b}
           label="B"
           onSelect={() => onVote(match.item_b_id)}
+          stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_b_id)}
         />
       </div>
     </section>
@@ -1303,11 +1438,13 @@ function VoteCard({
   item,
   label,
   onSelect,
+  stamps,
 }: {
   disabled: boolean;
   item: WorldcupItemResponse;
   label: string;
   onSelect: () => void;
+  stamps: VoteStamp[];
 }) {
   return (
     <button
@@ -1316,11 +1453,14 @@ function VoteCard({
       disabled={disabled}
       onClick={onSelect}
     >
-      <MediaPreview
-        alt={`${item.name} 후보 이미지`}
-        className="aspect-[16/11] w-full"
-        src={item.image_url}
-      />
+      <div className="relative">
+        <MediaPreview
+          alt={`${item.name} 후보 이미지`}
+          className="aspect-[16/11] w-full"
+          src={item.image_url}
+        />
+        <VoteStampLayer stamps={stamps} />
+      </div>
       <div className="flex items-center justify-between px-4 py-4">
         <div>
           <p className="text-[12px] font-semibold tracking-[-0.12px] text-[#0066cc]">{label}</p>
@@ -1333,6 +1473,42 @@ function VoteCard({
         </span>
       </div>
     </button>
+  );
+}
+
+function VoteStampLayer({ stamps }: { stamps: VoteStamp[] }) {
+  if (stamps.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {stamps.map((stamp) => (
+        <div
+          key={stamp.memberId}
+          className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+          style={{
+            left: `${stamp.x}%`,
+            top: `${stamp.y}%`,
+            transform: `translate(-50%, -50%) rotate(${stamp.rotate}deg) scale(${stamp.scale})`,
+          }}
+        >
+          <div className="rounded-full border-[3px] border-[#0066cc] bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,0.22)]">
+            <Image
+              alt={`${stamp.name} 투표 도장`}
+              className="size-12 rounded-full"
+              height={48}
+              src={stamp.avatar}
+              unoptimized
+              width={48}
+            />
+          </div>
+          <span className="mt-1 max-w-[82px] truncate rounded-full bg-[#0066cc] px-2 py-0.5 text-[11px] font-semibold tracking-[-0.12px] text-white shadow-[0_4px_12px_rgba(0,0,0,0.2)]">
+            {stamp.name}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 

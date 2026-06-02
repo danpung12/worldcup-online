@@ -63,7 +63,6 @@ export class RoomService {
       where: { room_id: room.id },
     });
 
-
     // 이미 시작한 게임이 있을 경우 다시 시작하지 않도록 예외처리
     if (alreadyStart) {
       throw new BadRequestException('이미 시작된 게임입니다.');
@@ -77,7 +76,6 @@ export class RoomService {
         `${items.length}개보다 많이 선택할 수 없습니다.`,
       );
     }
-
 
     // 8, 16, 32, 64, 128강만 가능하도록 예외처리.
     const ValidRounds = [8, 16, 32, 64, 128];
@@ -186,6 +184,7 @@ export class RoomService {
     if (voteCount < memberCount) {
       return {
         status: 'voting' as const,
+        vote: { memberId, selectItemId },
       };
     } else {
       const result = await this.decideMatchWinner(match.id);
@@ -211,6 +210,7 @@ export class RoomService {
     return {
       status: 'nextMatch' as const,
       match: await this.getCurrentMatch(roomCode),
+      vote: { memberId, selectItemId },
     };
   }
 
