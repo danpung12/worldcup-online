@@ -96,6 +96,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
@@ -186,6 +187,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         setCurrentMatch(update);
         setWinnerId(null);
         setGameNotice(null);
+        setSelectedItemId(null);
         setVoteStamps([]);
         setView("play");
         return;
@@ -194,6 +196,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       if ("finished" in update && update.finished) {
         clearNextMatchTimer();
         setWinnerId(update.winnerId);
+        setSelectedItemId(null);
         setGameNotice("월드컵이 종료되었습니다.");
         setVoteStamps([]);
         setView("result");
@@ -207,14 +210,20 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       if (update.status === "voting") {
         if (update.vote) {
           addVoteStamp(update.vote);
+
+          if (update.vote.memberId === currentMember?.memberId) {
+            setSelectedItemId(update.vote.selectItemId);
+          }
         }
         setGameNotice("다른 플레이어의 선택을 기다리는 중입니다.");
+        setGameNotice("다른 사람을 기다리는 중입니다.");
         return;
       }
 
       if (update.status === "tie") {
         clearNextMatchTimer();
         setCurrentMatch(update.match);
+        setSelectedItemId(null);
         setVoteStamps([]);
         setGameNotice("동점입니다. 같은 매치를 다시 투표해주세요.");
         setView("play");
@@ -225,6 +234,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         if (!update.vote) {
           clearNextMatchTimer();
           setCurrentMatch(update.match);
+          setSelectedItemId(null);
           setVoteStamps([]);
           setGameNotice(null);
           setView("play");
@@ -232,6 +242,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         }
 
         addVoteStamp(update.vote);
+
+        if (update.vote.memberId === currentMember?.memberId) {
+          setSelectedItemId(update.vote.selectItemId);
+        }
         setGameNotice("다음 매치로 넘어갑니다.");
 
         if (nextMatchTimerRef.current) {
@@ -240,6 +254,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
         nextMatchTimerRef.current = setTimeout(() => {
           setCurrentMatch(update.match);
+          setSelectedItemId(null);
           setVoteStamps([]);
           setGameNotice(null);
           setView("play");
@@ -247,7 +262,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         }, 1000);
       }
     },
-    [addVoteStamp, clearNextMatchTimer, setView],
+    [addVoteStamp, clearNextMatchTimer, currentMember?.memberId, setView],
   );
 
   useEffect(() => {
@@ -280,6 +295,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     clearNextMatchTimer();
     setGameNotice(null);
     setVoteStamps([]);
+    setSelectedItemId(null);
     setActiveRoundSize(roundSize ?? selectedGame.participants);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
@@ -287,12 +303,14 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   async function handleVote(selectItemId: number) {
     setGameNotice(null);
+    setSelectedItemId(selectItemId);
     setIsVoting(true);
 
     try {
       applyGameUpdate(await vote(selectItemId));
     } catch {
       setIsVoting(false);
+      setSelectedItemId(null);
       setGameNotice("투표에 실패했습니다. 이미 투표했거나 현재 매치가 바뀌었을 수 있습니다.");
     }
   }
@@ -305,6 +323,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     setGameNotice(null);
     setActiveRoundSize(null);
     setChatMessages([]);
+    setSelectedItemId(null);
     setVoteStamps([]);
 
     if (initialRoomCode) {
@@ -419,6 +438,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             onSendChat={handleSendChat}
             onVote={handleVote}
             players={players}
+            selectedItemId={selectedItemId}
             voteStamps={voteStamps}
           />
         )}
@@ -1495,6 +1515,7 @@ function PlayView({
   onSendChat,
   onVote,
   players,
+  selectedItemId,
   voteStamps,
 }: {
   activeRoundSize: number;
@@ -1505,17 +1526,26 @@ function PlayView({
   onSendChat: (message: string) => void;
   onVote: (selectItemId: number) => void;
   players: Player[];
+  selectedItemId: number | null;
   voteStamps: VoteStamp[];
 }) {
   const roundLabel = getMatchRoundLabel(match, activeRoundSize);
+  const isWaitingForOthers = selectedItemId !== null && !isVoting;
 
   return (
     <section className="flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3">
       <div className="bg-white px-4 pb-3 pt-4">
-        <p className="text-[13px] leading-[1.43] tracking-[-0.12px] text-[#7a7a7a]">
-          {roundLabel}
-        </p>
-        {notice && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#1d1d1f]">
+            {roundLabel}
+          </p>
+          {isWaitingForOthers && (
+            <span className="shrink-0 rounded-full bg-[#f5f5f7] px-3 py-1 text-[12px] tracking-[-0.12px] text-[#7a7a7a]">
+              대기 중
+            </span>
+          )}
+        </div>
+        {notice && !isWaitingForOthers && (
           <p className="mt-2 rounded-2xl bg-[#f5f5f7] px-3 py-2 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#0066cc]">
             {notice}
           </p>
@@ -1528,6 +1558,7 @@ function PlayView({
           item={match.item_a}
           label="A"
           onSelect={() => onVote(match.item_a_id)}
+          selected={selectedItemId === match.item_a_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
         />
         <div className="flex items-center justify-center text-[12px] font-semibold tracking-[-0.12px] text-[#7a7a7a]">
@@ -1538,6 +1569,7 @@ function PlayView({
           item={match.item_b}
           label="B"
           onSelect={() => onVote(match.item_b_id)}
+          selected={selectedItemId === match.item_b_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_b_id)}
         />
       </div>
@@ -1554,17 +1586,21 @@ function VoteCard({
   item,
   label,
   onSelect,
+  selected,
   stamps,
 }: {
   disabled: boolean;
   item: WorldcupItemResponse;
   label: string;
   onSelect: () => void;
+  selected: boolean;
   stamps: VoteStamp[];
 }) {
   return (
     <button
-      className="flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white text-left active:scale-[0.99] disabled:opacity-60"
+      className={`flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-[18px] border bg-white text-left active:scale-[0.99] disabled:opacity-70 ${
+        selected ? "border-[#0066cc]" : "border-[#e0e0e0]"
+      }`}
       type="button"
       disabled={disabled}
       onClick={onSelect}
@@ -1584,8 +1620,12 @@ function VoteCard({
             {item.name}
           </strong>
         </div>
-        <span className="inline-flex h-9 items-center justify-center rounded-full bg-[#0066cc] px-3 text-[14px] tracking-[-0.224px] text-white">
-          선택
+        <span
+          className={`inline-flex h-9 items-center justify-center rounded-full px-3 text-[14px] tracking-[-0.224px] text-white ${
+            selected ? "bg-[#1d1d1f]" : "bg-[#0066cc]"
+          }`}
+        >
+          {selected ? "선택함" : "선택"}
         </span>
       </div>
     </button>
@@ -1628,7 +1668,7 @@ function ChatPanel({
     <section className="flex h-full min-h-[210px] flex-col overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-[#fafafc] px-3 py-3"
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#fafafc] px-3 py-3"
       >
         {messages.map((chat, index) => {
             const player = players.find((currentPlayer) => currentPlayer.id === chat.memberId);
@@ -1637,7 +1677,7 @@ function ChatPanel({
               <div key={`${chat.memberId}-${chat.createdAt}-${index}`} className="flex items-start gap-2">
                 <Image
                   alt={`${player?.name ?? "참가자"} 아바타`}
-                  className="mt-0.5 size-8 shrink-0 rounded-full border border-black/10 bg-white"
+                  className="mt-0.5 size-8 shrink-0 rounded-full border border-[#e0e0e0] bg-white"
                   height={32}
                   src={player?.avatar ?? getAvatarForName(String(chat.memberId))}
                   unoptimized
@@ -1645,14 +1685,14 @@ function ChatPanel({
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="max-w-[120px] truncate text-[12px] font-semibold tracking-[-0.12px] text-[#333333]">
+                    <span className="max-w-[120px] truncate text-[12px] font-normal leading-none tracking-[-0.12px] text-[#333333]">
                       {player?.name ?? "참가자"}
                     </span>
-                    <time className="text-[11px] tracking-[-0.12px] text-[#8a8a8e]">
+                    <time className="text-[10px] leading-[1.3] tracking-[-0.08px] text-[#7a7a7a]">
                       {formatChatTime(chat.createdAt)}
                     </time>
                   </div>
-                  <p className="mt-0.5 break-words rounded-2xl rounded-tl-md bg-white px-3 py-2 text-[14px] leading-[1.35] tracking-[-0.224px] text-[#1d1d1f] shadow-sm">
+                  <p className="mt-1 break-words rounded-[18px] rounded-tl-[8px] border border-[#f0f0f0] bg-white px-3 py-2 text-[15px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] shadow-sm">
                     {chat.message}
                   </p>
                 </div>
@@ -1660,9 +1700,9 @@ function ChatPanel({
             );
           })}
       </div>
-      <form className="flex items-center gap-2 border-t border-[#f0f0f0] bg-white p-2.5" onSubmit={handleSubmit}>
+      <form className="flex h-16 items-center gap-2 border-t border-[#f0f0f0] bg-[#f5f5f7]/90 px-3 py-2 backdrop-blur-xl" onSubmit={handleSubmit}>
         <input
-          className="h-10 min-w-0 flex-1 rounded-full bg-[#f5f5f7] px-4 text-[15px] tracking-[-0.224px] outline-none placeholder:text-[#8a8a8e] focus:ring-4 focus:ring-[#0066cc]/10"
+          className="h-11 min-w-0 flex-1 rounded-full border border-black/10 bg-white px-5 text-[17px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] outline-none placeholder:text-[#7a7a7a] focus:border-[#0071e3] focus:ring-4 focus:ring-[#0066cc]/10"
           maxLength={120}
           placeholder="메시지"
           value={message}
@@ -1670,7 +1710,7 @@ function ChatPanel({
         />
         <button
           aria-label="채팅 보내기"
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white active:scale-95 disabled:bg-[#8bbbe8]"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white active:scale-95 disabled:bg-[#d2d2d7] disabled:text-[#7a7a7a]"
           type="submit"
           disabled={message.trim().length === 0}
         >

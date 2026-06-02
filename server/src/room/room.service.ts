@@ -158,8 +158,19 @@ export class RoomService {
     }
 
     try {
-      await this.prisma.worldcupVote.create({
-        data: {
+      await this.prisma.worldcupVote.upsert({
+        where: {
+          member_id_match_id: {
+            member_id: memberId,
+            match_id: match.id,
+          },
+        },
+
+        update: {
+          select_item_id: selectItemId,
+        },
+
+        create: {
           room_id: match.room_id,
           match_id: match.id,
           member_id: memberId,
@@ -167,7 +178,7 @@ export class RoomService {
         },
       });
     } catch (e) {
-      throw new BadRequestException('이미 투표했습니다.');
+      throw new BadRequestException('투표 처리에 실패했습니다.');
     }
 
     const memberCount = await this.prisma.roomMember.count({
