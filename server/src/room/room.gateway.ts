@@ -23,12 +23,13 @@ export class RoomGateway {
   // 초대 코드로 방 입장.
   @SubscribeMessage('joinRoom')
   async joinRoom(
-    @MessageBody() body: { roomCode: string; nickname: string },
+    @MessageBody() body: { roomCode: string; nickname: string; avatar: string },
     @ConnectedSocket() client: Socket,
   ) {
     const { room, member } = await this.roomService.joinRoom(
       body.roomCode,
       body.nickname,
+      body.avatar,
     );
 
     client.join(body.roomCode);

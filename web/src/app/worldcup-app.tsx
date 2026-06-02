@@ -139,6 +139,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       setVoteStamps((current) => {
         const stamp = createVoteStamp({
           avatar: player?.avatar ?? getAvatarForName(String(vote.memberId)),
+          existingStamps: current,
           matchId: currentMatch?.id ?? 0,
           memberId: vote.memberId,
           name: player?.name ?? "참가자",
@@ -299,6 +300,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   async function handleProfileComplete(profile: Pick<Player, "name" | "avatar">) {
     if (initialRoomCode) {
       const result = await joinRoom({
+        avatar: profile.avatar,
         roomCode: initialRoomCode,
         nickname: profile.name,
       });
@@ -320,6 +322,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     }
 
     const result = await createRoom({
+      avatar: profile.avatar,
       gameId: selectedGame.id,
       nickname: profile.name,
     });
@@ -406,9 +409,10 @@ function mapRoomMembers(
     id: member.id,
     name: member.nickname,
     avatar:
-      member.id === currentMemberId
+      member.avatar ??
+      (member.id === currentMemberId
         ? currentAvatar
-        : getAvatarForName(member.nickname),
+        : getAvatarForName(member.nickname)),
     isHost: member.is_host,
   }));
 }
@@ -435,20 +439,24 @@ function readSocketError(error: unknown) {
 
 function createVoteStamp({
   avatar,
+  existingStamps,
   matchId,
   memberId,
   name,
   selectItemId,
 }: {
   avatar: string;
+  existingStamps: VoteStamp[];
   matchId: number;
   memberId: number;
   name: string;
   selectItemId: number;
 }): VoteStamp {
   const seed = hashVoteStamp(`${matchId}:${memberId}:${selectItemId}`);
-  const x = 50 + (seedToUnit(seed) - 0.5) * 30;
-  const y = 50 + (seedToUnit(seed * 17) - 0.5) * 24;
+  const sameItemStamps = existingStamps.filter(
+    (stamp) => stamp.memberId !== memberId && stamp.selectItemId === selectItemId,
+  );
+  const { x, y } = findVoteStampPosition(seed, sameItemStamps);
   const rotate = (seedToUnit(seed * 31) - 0.5) * 18;
   const scale = 0.94 + seedToUnit(seed * 47) * 0.12;
 
@@ -462,6 +470,51 @@ function createVoteStamp({
     x,
     y,
   };
+}
+
+function findVoteStampPosition(seed: number, existingStamps: VoteStamp[]) {
+  const positions = Array.from({ length: 16 }, (_, index) =>
+    createVoteStampPosition(seed + index * 101),
+  );
+
+  if (existingStamps.length === 0) {
+    return positions[0];
+  }
+
+  let bestPosition = positions[0];
+  let bestScore = getVoteStampPositionScore(bestPosition, existingStamps);
+
+  for (const position of positions.slice(1)) {
+    const score = getVoteStampPositionScore(position, existingStamps);
+
+    if (score > bestScore) {
+      bestPosition = position;
+      bestScore = score;
+    }
+  }
+
+  return bestPosition;
+}
+
+function createVoteStampPosition(seed: number) {
+  return {
+    x: 50 + (seedToUnit(seed) - 0.5) * 42,
+    y: 50 + (seedToUnit(seed * 17) - 0.5) * 34,
+  };
+}
+
+function getVoteStampPositionScore(
+  position: { x: number; y: number },
+  existingStamps: VoteStamp[],
+) {
+  return Math.min(
+    ...existingStamps.map((stamp) => {
+      const dx = (position.x - stamp.x) / 22;
+      const dy = (position.y - stamp.y) / 18;
+
+      return dx * dx + dy * dy;
+    }),
+  );
 }
 
 function hashVoteStamp(value: string) {

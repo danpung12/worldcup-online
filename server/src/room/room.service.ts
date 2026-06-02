@@ -22,6 +22,7 @@ export class RoomService {
             nickname: dto.nickname,
             is_host: true,
             user_id: userId,
+            avatar: dto.avatar,
           },
         },
       },
@@ -291,7 +292,7 @@ export class RoomService {
     return !!member;
   }
 
-  async joinRoom(roomCode: string, nickname: string) {
+  async joinRoom(roomCode: string, nickname: string, avatar: string) {
     const room = await this.getRoomByCode(roomCode);
 
     const member = await this.prisma.roomMember.create({
@@ -299,6 +300,7 @@ export class RoomService {
         room_id: room.id,
         nickname,
         is_host: false,
+        avatar,
       },
     });
 

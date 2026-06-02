@@ -2,6 +2,7 @@ import { io, type Socket } from "socket.io-client";
 import { socketBaseUrl } from "@/lib/worldcup";
 
 type RoomMemberResponse = {
+  avatar?: string | null;
   id: number;
   nickname: string;
   is_host: boolean;
@@ -82,7 +83,11 @@ export function getRoomSocket() {
   return socket;
 }
 
-export async function createRoom(payload: { gameId: number; nickname: string }) {
+export async function createRoom(payload: {
+  avatar: string;
+  gameId: number;
+  nickname: string;
+}) {
   const activeSocket = getRoomSocket();
 
   if (!activeSocket.connected) {
@@ -92,7 +97,11 @@ export async function createRoom(payload: { gameId: number; nickname: string }) 
   return activeSocket.timeout(5000).emitWithAck("createRoom", payload) as Promise<CreateRoomAck>;
 }
 
-export async function joinRoom(payload: { roomCode: string; nickname: string }) {
+export async function joinRoom(payload: {
+  avatar: string;
+  roomCode: string;
+  nickname: string;
+}) {
   const activeSocket = getRoomSocket();
 
   if (!activeSocket.connected) {

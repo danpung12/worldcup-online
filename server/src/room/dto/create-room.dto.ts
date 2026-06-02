@@ -1,13 +1,12 @@
-import { IsInt, IsString } from "class-validator";
+import { IsInt, IsString } from 'class-validator';
 
+export class CreateRoomDto {
+  @IsInt()
+  gameId!: number;
 
-export class CreateRoomDto{
+  @IsString()
+  nickname!: string;
 
-    @IsInt()
-    gameId!:number;
-
-    @IsString()
-    nickname!: string;
-
-
+  @IsString()
+  avatar?: string;
 }
