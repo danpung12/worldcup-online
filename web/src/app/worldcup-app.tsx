@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   BarChart3,
   Check,
-  Copy,
   Crown,
   Expand,
   ImagePlus,
@@ -17,7 +16,7 @@ import {
   Send,
   Share2,
   Shuffle,
-  SquareCheck,
+  SlidersHorizontal,
   Trophy,
   Trash2,
   Users,
@@ -426,7 +425,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         <AppChrome
           title={titleByView[view]}
           canGoBack={view !== "home"}
-          showBrandBar={view !== "play"}
+          showBrandBar={view !== "play" && view !== "lobby"}
           onBack={handleBackToHome}
           onCreate={() => setView("create")}
         />
@@ -447,7 +446,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             roomCode={roomCode ?? initialRoomCode ?? "-----"}
             isCurrentHost={isCurrentHost}
             isStarting={isStarting}
+            messages={chatMessages}
             notice={gameNotice}
+            onSendChat={handleSendChat}
             onStart={handleStartGame}
           />
         )}
@@ -717,16 +718,16 @@ function AppChrome({
         </button>
       </header>
       {showBrandBar && (
-      <div className="sticky top-0 z-10 flex h-[52px] items-center justify-between border-b border-black/5 bg-[#f5f5f7]/90 px-4 backdrop-blur-xl">
-        <strong className="text-[21px] font-semibold leading-none tracking-[0.231px]">Worldcup</strong>
-        <button
-          className="rounded-full bg-[#0066cc] px-[18px] py-[9px] text-[14px] font-normal tracking-[-0.224px] text-white active:scale-95"
-          type="button"
-          onClick={onCreate}
-        >
-          만들기
-        </button>
-      </div>
+        <div className="sticky top-0 z-10 flex h-[52px] items-center justify-between border-b border-black/5 bg-[#f5f5f7]/90 px-4 backdrop-blur-xl">
+          <strong className="text-[21px] font-semibold leading-none tracking-[0.231px]">Worldcup</strong>
+          <button
+            className="rounded-full bg-[#0066cc] px-[18px] py-[9px] text-[14px] font-normal tracking-[-0.224px] text-white active:scale-95"
+            type="button"
+            onClick={onCreate}
+          >
+            만들기
+          </button>
+        </div>
       )}
     </>
   );
@@ -1348,19 +1349,24 @@ function LobbyView({
   game,
   isCurrentHost,
   isStarting,
+  messages,
   notice,
+  onSendChat,
   onStart,
   roomCode,
 }: {
   game: WorldcupGame;
   isCurrentHost: boolean;
   isStarting: boolean;
+  messages: ChatResponse[];
   notice: string | null;
+  onSendChat: (message: string) => void;
   onStart: (roundSize?: number) => void;
   roomCode: string;
 }) {
   const players = useWorldcupStore((state) => state.players);
   const [hasCopiedInvite, setHasCopiedInvite] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedRoundSize, setSelectedRoundSize] = useState<number | undefined>(
     () => getDefaultRoundSize(game.participants),
   );
@@ -1370,6 +1376,7 @@ function LobbyView({
     selectedRoundSize && roundSizeOptions.includes(selectedRoundSize)
       ? selectedRoundSize
       : getDefaultRoundSize(game.participants);
+  const activeRoundLabel = activeRoundSize ? `${activeRoundSize}강` : "전체";
   const canStartWithRoundSize =
     roundSizeOptions.length > 0 || game.participants === 2 || game.participants === 4;
 
@@ -1386,18 +1393,27 @@ function LobbyView({
       <div className="bg-white px-4 pb-3 pt-4">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">함께 플레이할 월드컵</p>
         <h1 className="mt-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.374px]">{game.title}</h1>
-        <div className="mt-4 flex items-center justify-between rounded-[18px] bg-[#f5f5f7] px-4 py-3">
-          <div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="min-w-0 rounded-[18px] border border-[#e0e0e0] bg-white px-3 py-3">
             <p className="text-[12px] tracking-[-0.12px] text-[#7a7a7a]">초대 코드</p>
-            <strong className="text-[17px] tracking-[-0.374px]">{roomCode}</strong>
+            <strong className="block truncate text-[17px] tracking-[-0.374px]">{roomCode}</strong>
           </div>
           <button
-            className="grid size-11 place-items-center rounded-full bg-white text-[#0066cc]"
+            className={`flex min-w-0 items-center justify-between rounded-[18px] border px-3 py-3 text-left active:scale-[0.99] disabled:active:scale-100 ${
+              isCurrentHost && isSettingsOpen
+                ? "border-[#0066cc] bg-white text-[#0066cc]"
+                : "border-[#e0e0e0] bg-white text-[#1d1d1f]"
+            }`}
             type="button"
-            aria-label="초대 링크 복사"
-            onClick={copyInviteLink}
+            aria-label="사전 설정"
+            disabled={!isCurrentHost}
+            onClick={() => setIsSettingsOpen((isOpen) => !isOpen)}
           >
-            {hasCopiedInvite ? <SquareCheck className="size-4" /> : <Copy className="size-4" />}
+            <span className="min-w-0">
+              <span className="block text-[12px] tracking-[-0.12px] text-[#7a7a7a]">사전 설정</span>
+              <strong className="block truncate text-[17px] tracking-[-0.374px]">{activeRoundLabel}</strong>
+            </span>
+            {isCurrentHost && <SlidersHorizontal className="size-4 shrink-0" />}
           </button>
         </div>
         {hasCopiedInvite && (
@@ -1445,63 +1461,69 @@ function LobbyView({
         </div>
       </div>
 
-      <section className="px-4">
-        <div className="rounded-[18px] border border-[#e0e0e0] bg-white">
-          <div className="border-b border-[#e0e0e0] px-4 py-4">
-            <h2 className="text-[21px] font-semibold tracking-[0.231px]">사전 설정</h2>
-            <p className="mt-1 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-              시작할 라운드 크기를 선택해주세요.
-            </p>
-          </div>
-          <div className="px-4 py-4">
-            {roundSizeOptions.length > 0 ? (
-              <div>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[15px] font-semibold tracking-[-0.224px] text-[#1d1d1f]">라운드 선택</p>
-                    <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
-                      후보 {game.participants.toLocaleString()}개 중 시작할 크기를 고르세요.
-                    </p>
+      {isCurrentHost && isSettingsOpen && (
+        <section className="px-4 pb-4">
+          <div className="rounded-[18px] border border-[#e0e0e0] bg-white">
+            <div className="border-b border-[#e0e0e0] px-4 py-4">
+              <h2 className="text-[21px] font-semibold tracking-[0.231px]">사전 설정</h2>
+              <p className="mt-1 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+                시작할 라운드 크기를 선택해주세요.
+              </p>
+            </div>
+            <div className="px-4 py-4">
+              {roundSizeOptions.length > 0 ? (
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[15px] font-semibold tracking-[-0.224px] text-[#1d1d1f]">라운드 선택</p>
+                      <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
+                        후보 {game.participants.toLocaleString()}개 중 시작할 크기를 고르세요.
+                      </p>
+                    </div>
+                    <Trophy className="size-5 shrink-0 text-[#0066cc]" />
                   </div>
-                  <Trophy className="size-5 shrink-0 text-[#0066cc]" />
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {roundSizeOptions.map((roundSize) => (
+                      <button
+                        key={roundSize}
+                        className={`h-11 rounded-full border text-[15px] tracking-[-0.224px] active:scale-95 ${
+                          activeRoundSize === roundSize
+                            ? "border-[#0066cc] bg-[#0066cc] text-white"
+                            : "border-[#d2d2d7] bg-white text-[#1d1d1f]"
+                        }`}
+                        type="button"
+                        onClick={() => setSelectedRoundSize(roundSize)}
+                      >
+                        {roundSize}강
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {roundSizeOptions.map((roundSize) => (
-                    <button
-                      key={roundSize}
-                      className={`h-11 rounded-full border text-[15px] tracking-[-0.224px] active:scale-95 disabled:active:scale-100 ${
-                        activeRoundSize === roundSize
-                          ? "border-[#0066cc] bg-[#0066cc] text-white disabled:opacity-100"
-                          : "border-[#d2d2d7] bg-white text-[#1d1d1f] disabled:opacity-70"
-                      }`}
-                      type="button"
-                      disabled={!isCurrentHost}
-                      onClick={() => setSelectedRoundSize(roundSize)}
-                    >
-                      {roundSize}강
-                    </button>
-                  ))}
+              ) : (
+                <div className="rounded-2xl bg-[#f5f5f7] px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+                  {canStartWithRoundSize
+                    ? "후보가 8개 미만이라 전체 후보로 시작합니다."
+                    : "후보 수를 2개, 4개 또는 8개 이상으로 맞춰야 시작할 수 있습니다."}
                 </div>
-                {!isCurrentHost && (
-                  <p className="mt-3 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
-                    방장이 라운드를 선택할 수 있습니다.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-2xl bg-[#f5f5f7] px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-                {canStartWithRoundSize
-                  ? "후보가 8개 미만이라 전체 후보로 시작합니다."
-                  : "후보 수를 2개, 4개 또는 8개 이상으로 맞춰야 시작할 수 있습니다."}
-              </div>
-            )}
+              )}
+            </div>
           </div>
+        </section>
+      )}
+
+      <section className="px-4 pb-4">
+        <div className="h-[280px]">
+          <ChatPanel messages={messages} onSend={onSendChat} players={players} />
         </div>
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-[430px] border-t border-black/5 bg-[#f5f5f7]/90 px-4 py-3 backdrop-blur-xl">
         <div className="grid grid-cols-[1fr_1.35fr] gap-2">
-          <button className="h-12 rounded-full border border-[#0066cc] bg-white text-[17px] tracking-[-0.374px] text-[#0066cc] active:scale-95" type="button">
+          <button
+            className="h-12 rounded-full border border-[#0066cc] bg-white text-[17px] tracking-[-0.374px] text-[#0066cc] active:scale-95"
+            type="button"
+            onClick={copyInviteLink}
+          >
             초대
           </button>
           {isCurrentHost ? (
@@ -1588,11 +1610,10 @@ function PlayView({
         )}
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 items-stretch gap-1 px-3 py-3">
+      <div className="grid shrink-0 grid-cols-2 items-stretch gap-px bg-black">
         <VoteCard
           disabled={isVoting}
           item={match.item_a}
-          label="A"
           onSelect={() => onVote(match.item_a_id)}
           selected={selectedItemId === match.item_a_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
@@ -1600,14 +1621,13 @@ function PlayView({
         <VoteCard
           disabled={isVoting}
           item={match.item_b}
-          label="B"
           onSelect={() => onVote(match.item_b_id)}
           selected={selectedItemId === match.item_b_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_b_id)}
         />
       </div>
 
-      <div className="min-h-0 flex-1 px-3">
+      <div className="min-h-0 flex-1 px-3 pt-3">
         <ChatPanel messages={messages} onSend={onSendChat} players={players} />
       </div>
     </section>
@@ -1617,45 +1637,40 @@ function PlayView({
 function VoteCard({
   disabled,
   item,
-  label,
   onSelect,
   selected,
   stamps,
 }: {
   disabled: boolean;
   item: WorldcupItemResponse;
-  label: string;
   onSelect: () => void;
   selected: boolean;
   stamps: VoteStamp[];
 }) {
   return (
     <button
-      className={`flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-[18px] border bg-white text-left active:scale-[0.99] disabled:opacity-70 ${
-        selected ? "border-[#0066cc]" : "border-[#e0e0e0]"
+      className={`relative h-[42dvh] min-h-[300px] max-h-[430px] min-w-0 overflow-hidden bg-black text-left active:scale-[0.995] disabled:opacity-80 ${
+        selected ? "ring-2 ring-inset ring-[#0066cc]" : ""
       }`}
       type="button"
       disabled={disabled}
       onClick={onSelect}
     >
-      <div className="relative min-h-0">
-        <MediaPreview
-          alt={`${item.name} 후보 이미지`}
-          className="aspect-[3/4] w-full"
-          src={item.image_url}
-        />
-        <VoteStampLayer stamps={stamps} />
-      </div>
-      <div className="flex flex-1 flex-col justify-between gap-3 px-3 py-3">
+      <MediaPreview
+        alt={`${item.name} 후보 이미지`}
+        className="absolute inset-0 size-full"
+        src={item.image_url}
+      />
+      <VoteStampLayer stamps={stamps} />
+      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pb-4 pt-16 text-center">
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold tracking-[-0.12px] text-[#0066cc]">{label}</p>
-          <strong className="mt-0.5 line-clamp-2 block text-[17px] font-semibold leading-[1.22] tracking-[-0.374px] text-[#1d1d1f]">
+          <strong className="line-clamp-2 block text-[20px] font-semibold leading-[1.15] tracking-[-0.374px] text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.75)]">
             {item.name}
           </strong>
         </div>
         <span
-          className={`inline-flex h-9 items-center justify-center rounded-full px-3 text-[14px] tracking-[-0.224px] text-white ${
-            selected ? "bg-[#1d1d1f]" : "bg-[#0066cc]"
+          className={`mx-auto mt-3 inline-flex h-9 items-center justify-center rounded-full px-4 text-[14px] font-semibold tracking-[-0.224px] shadow-[0_8px_20px_rgba(0,0,0,0.24)] ${
+            selected ? "bg-white text-[#1d1d1f]" : "bg-[#0066cc] text-white"
           }`}
         >
           {selected ? "선택함" : "선택"}
