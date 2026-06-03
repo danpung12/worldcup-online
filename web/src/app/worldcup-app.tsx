@@ -177,6 +177,12 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     [currentMatch?.id, players],
   );
 
+  const removeVoteStamp = useCallback((memberId: number) => {
+    setVoteStamps((current) =>
+      current.filter((currentStamp) => currentStamp.memberId !== memberId),
+    );
+  }, []);
+
   const applyGameUpdate = useCallback(
     (update: GameUpdateResponse) => {
       setIsStarting(false);
@@ -215,8 +221,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             setSelectedItemId(update.vote.selectItemId);
           }
         }
-        setGameNotice("다른 플레이어의 선택을 기다리는 중입니다.");
-        setGameNotice("다른 사람을 기다리는 중입니다.");
+        setGameNotice(null);
         return;
       }
 
@@ -302,15 +307,33 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   }
 
   async function handleVote(selectItemId: number) {
+    if (!currentMember) {
+      return;
+    }
+
+    const previousSelectedItemId = selectedItemId;
+
     setGameNotice(null);
     setSelectedItemId(selectItemId);
-    setIsVoting(true);
+    addVoteStamp({
+      memberId: currentMember.memberId,
+      selectItemId,
+    });
 
     try {
       applyGameUpdate(await vote(selectItemId));
     } catch {
       setIsVoting(false);
-      setSelectedItemId(null);
+      setSelectedItemId(previousSelectedItemId);
+
+      if (previousSelectedItemId) {
+        addVoteStamp({
+          memberId: currentMember.memberId,
+          selectItemId: previousSelectedItemId,
+        });
+      } else {
+        removeVoteStamp(currentMember.memberId);
+      }
       setGameNotice("투표에 실패했습니다. 이미 투표했거나 현재 매치가 바뀌었을 수 있습니다.");
     }
   }
@@ -1531,6 +1554,19 @@ function PlayView({
 }) {
   const roundLabel = getMatchRoundLabel(match, activeRoundSize);
   const isWaitingForOthers = selectedItemId !== null && !isVoting;
+  const [waitingDotCount, setWaitingDotCount] = useState(1);
+
+  useEffect(() => {
+    if (!isWaitingForOthers) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setWaitingDotCount((count) => (count % 3) + 1);
+    }, 450);
+
+    return () => window.clearInterval(intervalId);
+  }, [isWaitingForOthers]);
 
   return (
     <section className="flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3">
@@ -1541,7 +1577,7 @@ function PlayView({
           </p>
           {isWaitingForOthers && (
             <span className="shrink-0 rounded-full bg-[#f5f5f7] px-3 py-1 text-[12px] tracking-[-0.12px] text-[#7a7a7a]">
-              대기 중
+              대기 중{".".repeat(waitingDotCount)}
             </span>
           )}
         </div>
@@ -1552,7 +1588,7 @@ function PlayView({
         )}
       </div>
 
-      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)] items-stretch gap-2 px-3 py-3">
+      <div className="grid shrink-0 grid-cols-2 items-stretch gap-1 px-3 py-3">
         <VoteCard
           disabled={isVoting}
           item={match.item_a}
@@ -1561,9 +1597,6 @@ function PlayView({
           selected={selectedItemId === match.item_a_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
         />
-        <div className="flex items-center justify-center text-[12px] font-semibold tracking-[-0.12px] text-[#7a7a7a]">
-          VS
-        </div>
         <VoteCard
           disabled={isVoting}
           item={match.item_b}
