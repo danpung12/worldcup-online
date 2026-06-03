@@ -421,13 +421,14 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   return (
     <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
-      <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#f5f5f7]">
+      <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#f5f5f7] md:max-w-none">
         <AppChrome
           title={titleByView[view]}
           canGoBack={view !== "home"}
           showBrandBar={view !== "play" && view !== "lobby"}
           onBack={handleBackToHome}
           onCreate={() => setView("create")}
+          onHome={handleBackToHome}
         />
 
         {view === "home" && (
@@ -619,22 +620,35 @@ function getYouTubeId(url: string) {
   return match?.[1] ?? null;
 }
 
-function getYouTubeThumbnail(url: string) {
-  const videoId = getYouTubeId(url);
-
-  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
-}
-
 function MediaPreview({
   alt,
   className,
+  isPlaying = false,
+  onPlay,
   src,
 }: {
   alt: string;
   className: string;
+  isPlaying?: boolean;
+  onPlay?: () => void;
   src: string;
 }) {
-  const thumbnail = getYouTubeThumbnail(src);
+  const videoId = getYouTubeId(src);
+  const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+
+  if (videoId && isPlaying) {
+    return (
+      <div className={`relative overflow-hidden bg-black ${className}`}>
+        <iframe
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 size-full"
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+          title={alt}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
@@ -646,11 +660,19 @@ function MediaPreview({
         width={820}
       />
       {thumbnail && (
-        <span className="absolute inset-0 grid place-items-center bg-black/10">
+        <button
+          aria-label={`${alt} 재생`}
+          className="absolute inset-0 z-20 grid place-items-center bg-black/10"
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onPlay?.();
+          }}
+        >
           <span className="grid size-11 place-items-center rounded-full bg-white/95 text-[#0066cc] shadow-sm">
             <Play className="ml-0.5 size-5 fill-[#0066cc]" />
           </span>
-        </span>
+        </button>
       )}
     </div>
   );
@@ -694,39 +716,51 @@ function AppChrome({
   showBrandBar = true,
   onBack,
   onCreate,
+  onHome,
 }: {
   title: string;
   canGoBack: boolean;
   showBrandBar?: boolean;
   onBack: () => void;
   onCreate: () => void;
+  onHome: () => void;
 }) {
   return (
     <>
-      <header className="flex h-11 items-center justify-between bg-black px-4 text-white">
-        <button
-          aria-label="뒤로"
-          className={`grid size-8 place-items-center rounded-full text-white/90 ${canGoBack ? "" : "invisible"}`}
-          type="button"
-          onClick={onBack}
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        <div className="text-xs font-normal tracking-[-0.12px]">{title}</div>
-        <button aria-label="공유" className="grid size-8 place-items-center rounded-full text-white/90" type="button">
-          <Share2 className="size-4" />
-        </button>
+      <header className="bg-black text-white">
+        <div className="mx-auto flex h-11 w-full max-w-[1180px] items-center justify-between px-4 md:px-8">
+          <button
+            aria-label="뒤로"
+            className={`grid size-8 place-items-center rounded-full text-white/90 ${canGoBack ? "" : "invisible"}`}
+            type="button"
+            onClick={onBack}
+          >
+            <ArrowLeft className="size-4" />
+          </button>
+          <div className="text-xs font-normal tracking-[-0.12px]">{title}</div>
+          <button aria-label="공유" className="grid size-8 place-items-center rounded-full text-white/90" type="button">
+            <Share2 className="size-4" />
+          </button>
+        </div>
       </header>
       {showBrandBar && (
-        <div className="sticky top-0 z-10 flex h-[52px] items-center justify-between border-b border-black/5 bg-[#f5f5f7]/90 px-4 backdrop-blur-xl">
-          <strong className="text-[21px] font-semibold leading-none tracking-[0.231px]">Worldcup</strong>
-          <button
-            className="rounded-full bg-[#0066cc] px-[18px] py-[9px] text-[14px] font-normal tracking-[-0.224px] text-white active:scale-95"
-            type="button"
-            onClick={onCreate}
-          >
-            만들기
-          </button>
+        <div className="sticky top-0 z-10 h-[52px] border-b border-black/5 bg-[#f5f5f7]/90 backdrop-blur-xl">
+          <div className="mx-auto flex h-full w-full max-w-[1180px] items-center justify-between px-4 md:px-8">
+            <button
+              className="text-[21px] font-semibold leading-none tracking-[0.231px] active:scale-[0.99]"
+              type="button"
+              onClick={onHome}
+            >
+              Worldcup
+            </button>
+            <button
+              className="rounded-full bg-[#0066cc] px-[18px] py-[9px] text-[14px] font-normal tracking-[-0.224px] text-white active:scale-95"
+              type="button"
+              onClick={onCreate}
+            >
+              만들기
+            </button>
+          </div>
         </div>
       )}
     </>
@@ -771,22 +805,26 @@ function HomeView({
 
   return (
     <section className="pb-8">
-      <div className="bg-white px-5 pb-7 pt-8">
-        <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-          친구와 같이 고르는
-        </p>
-        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px]">
-          온라인 이상형 월드컵
-        </h1>
-        <label className="mt-6 flex h-11 items-center gap-2 rounded-full border border-black/10 bg-white px-4 text-[17px] tracking-[-0.374px]">
-          <Search className="size-4 text-[#7a7a7a]" />
-          <input
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#7a7a7a]"
-            placeholder="월드컵 검색"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-        </label>
+      <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-14 md:pt-16">
+        <div className="mx-auto max-w-[1180px]">
+          <div className="md:mx-auto md:max-w-[760px] md:text-center">
+            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a] md:text-[17px]">
+              친구와 같이 고르는
+            </p>
+            <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[56px] md:leading-[1.07] md:tracking-[-0.28px]">
+              온라인 이상형 월드컵
+            </h1>
+            <label className="mt-6 flex h-11 items-center gap-2 rounded-full border border-black/10 bg-white px-4 text-[17px] tracking-[-0.374px] md:mx-auto md:h-12 md:max-w-[520px]">
+              <Search className="size-4 text-[#7a7a7a]" />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-left outline-none placeholder:text-[#7a7a7a]"
+                placeholder="월드컵 검색"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </label>
+          </div>
+        </div>
       </div>
 
       {hasBackendError && (
@@ -797,7 +835,7 @@ function HomeView({
         </div>
       )}
 
-      <div className="flex gap-2 overflow-x-auto px-4 py-4">
+      <div className="mx-auto flex max-w-[1180px] gap-2 overflow-x-auto px-4 py-4 md:px-8 md:pt-5">
         {sortFilters.map((filter) => (
           <button
             key={filter.value}
@@ -812,7 +850,7 @@ function HomeView({
         ))}
       </div>
 
-      <div className="grid gap-3 px-3">
+      <div className="mx-auto grid max-w-[1180px] gap-3 px-3 md:grid-cols-2 md:gap-5 md:px-8 lg:grid-cols-3">
         {visibleGames.map((game) => (
           <GameCard key={game.id} game={game} onJoin={() => onJoin(game.id)} onRanking={() => onRanking(game.id)} />
         ))}
@@ -844,15 +882,15 @@ function GameCard({
   onRanking: () => void;
 }) {
   return (
-    <article className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
+    <article className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white md:flex md:min-h-full md:flex-col">
       <div className="bg-[#fafafc] p-3">
         <MediaPreview
           alt={`${game.title} 대표 이미지`}
-          className="aspect-[16/10] w-full rounded-lg shadow-[3px_5px_30px_rgba(0,0,0,0.18)]"
+          className="aspect-[16/10] w-full rounded-lg shadow-[3px_5px_30px_rgba(0,0,0,0.18)] md:aspect-[16/11]"
           src={game.imageUrl}
         />
       </div>
-      <div className="px-4 pb-4 pt-3">
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-3 md:px-5 md:pb-5 md:pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="line-clamp-2 text-[19px] font-semibold leading-[1.22] tracking-[-0.374px]">
@@ -874,7 +912,7 @@ function GameCard({
           <span>{game.updatedAt}</span>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 md:mt-auto md:pt-5">
           <button
             className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95"
             type="button"
@@ -970,16 +1008,18 @@ function CreateView({ onComplete }: { onComplete: () => Promise<void> }) {
 
   return (
     <section className="pb-8">
-      <div className="bg-white px-5 pb-7 pt-8">
+      <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-12 md:pt-14">
+        <div className="mx-auto max-w-[960px]">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
           친구와 함께 플레이할
         </p>
-        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px]">
+        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">
           월드컵을 만들어주세요.
         </h1>
+        </div>
       </div>
 
-      <div className="grid gap-3 px-4 py-4">
+      <div className="mx-auto grid max-w-[960px] gap-3 px-4 py-4 md:gap-5 md:px-8 md:py-6">
         <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-5">
           <label className="block">
             <span className="text-[13px] tracking-[-0.12px] text-[#6e6e73]">제목</span>
@@ -1019,7 +1059,7 @@ function CreateView({ onComplete }: { onComplete: () => Promise<void> }) {
             </button>
           </div>
 
-          <div className="mt-4 grid gap-3">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
             {items.map((item, index) => (
               <div key={item.id} className="rounded-2xl border border-[#eeeeef] p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -1257,38 +1297,40 @@ function ProfileView({
 
   return (
     <section className="pb-8">
-      <div className="bg-white px-5 pb-7 pt-8">
+      <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-12 md:pt-14">
+        <div className="mx-auto max-w-[860px]">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
           함께 플레이하기 전에
         </p>
-        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px]">
+        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">
           프로필을 정해주세요.
         </h1>
         <p className="mt-3 text-[15px] leading-[1.45] tracking-[-0.224px] text-[#6e6e73]">
           {game.title}
         </p>
+        </div>
       </div>
 
-      <div className="px-4 py-4">
-        <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-5">
-          <div className="flex flex-col items-center">
+      <div className="mx-auto max-w-[900px] px-4 py-4 md:px-8 md:py-8">
+        <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-5 md:grid md:min-h-[340px] md:grid-cols-[280px_1fr] md:items-center md:gap-10 md:px-10 md:py-10">
+          <div className="flex flex-col items-center md:justify-center">
             <button
-              className="grid size-24 place-items-center overflow-hidden rounded-full border border-black/10 bg-white"
+              className="grid size-24 place-items-center overflow-hidden rounded-full border border-black/10 bg-white md:size-32"
               type="button"
               aria-label={`${avatar.name} 아바타 변경`}
               onClick={() => setAvatarIndex((index) => (index + 1) % avatarOptions.length)}
             >
               <Image
                 alt={`${avatar.name} 아바타`}
-                className="size-24"
-                height={96}
+                className="size-24 md:size-32"
+                height={128}
                 src={avatar.image}
                 unoptimized
-                width={96}
+                width={128}
               />
             </button>
             <button
-              className="mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[#f5f5f7] px-4 text-[14px] tracking-[-0.224px] text-[#0066cc] active:scale-95"
+              className="mt-3 inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-[#f5f5f7] px-4 text-[14px] tracking-[-0.224px] text-[#0066cc] active:scale-95 md:mt-4 md:h-10 md:px-5 md:text-[15px]"
               type="button"
               onClick={() => setAvatarIndex((index) => (index + 1) % avatarOptions.length)}
             >
@@ -1297,10 +1339,11 @@ function ProfileView({
             </button>
           </div>
 
-          <label className="mt-6 block">
+          <div className="md:py-4">
+          <label className="mt-6 block md:mt-0">
             <span className="text-[13px] tracking-[-0.12px] text-[#6e6e73]">닉네임</span>
             <input
-              className="mt-2 h-12 w-full rounded-xl border border-[#d2d2d7] bg-white px-4 text-[17px] tracking-[-0.374px] outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-[#0066cc]/10"
+              className="mt-2 h-12 w-full rounded-xl border border-[#d2d2d7] bg-white px-4 text-[17px] tracking-[-0.374px] outline-none transition focus:border-[#0066cc] focus:ring-4 focus:ring-[#0066cc]/10 md:h-14"
               maxLength={12}
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
@@ -1308,7 +1351,7 @@ function ProfileView({
           </label>
 
           <button
-            className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8]"
+            className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8] md:mt-6 md:h-14"
             type="button"
             disabled={nickname.trim().length === 0 || isSubmitting}
             onClick={handleSubmit}
@@ -1321,6 +1364,7 @@ function ProfileView({
               {errorMessage}
             </p>
           )}
+          </div>
         </div>
       </div>
     </section>
@@ -1389,11 +1433,11 @@ function LobbyView({
   }
 
   return (
-    <section className="pb-24">
-      <div className="bg-white px-4 pb-3 pt-4">
+    <section className="pb-24 md:mx-auto md:grid md:max-w-[1180px] md:grid-cols-[minmax(0,1fr)_360px] md:gap-4 md:px-8 md:py-6 md:pb-28">
+      <div className="bg-white px-4 pb-3 pt-4 md:col-start-1 md:rounded-[18px] md:border md:border-[#e0e0e0] md:px-6 md:py-6">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">함께 플레이할 월드컵</p>
-        <h1 className="mt-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.374px]">{game.title}</h1>
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <h1 className="mt-1 text-[32px] font-semibold leading-[1.12] tracking-[-0.374px] md:text-[40px] md:leading-[1.1] md:tracking-normal">{game.title}</h1>
+        <div className="mt-4 grid grid-cols-2 gap-2 md:hidden">
           <div className="min-w-0 rounded-[18px] border border-[#e0e0e0] bg-white px-3 py-3">
             <p className="text-[12px] tracking-[-0.12px] text-[#7a7a7a]">초대 코드</p>
             <strong className="block truncate text-[17px] tracking-[-0.374px]">{roomCode}</strong>
@@ -1428,8 +1472,8 @@ function LobbyView({
         )}
       </div>
 
-      <div className="px-4 py-4">
-        <div className="flex gap-3 overflow-x-auto pb-2">
+      <div className="px-4 py-4 md:col-start-1 md:rounded-[18px] md:border md:border-[#e0e0e0] md:bg-white md:px-6 md:py-6">
+        <div className="flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-6 md:overflow-visible md:pb-0">
           {players.map((player) => (
             <div key={player.id} className="w-[66px] shrink-0 text-center">
               <div className="relative mx-auto grid size-[58px] place-items-center overflow-hidden rounded-full border border-[#d2d2d7] bg-white">
@@ -1461,8 +1505,52 @@ function LobbyView({
         </div>
       </div>
 
+      <aside className="hidden md:col-start-2 md:row-span-3 md:row-start-1 md:block">
+        <div className="sticky top-16 space-y-3">
+          <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-4">
+            <p className="text-[12px] tracking-[-0.12px] text-[#7a7a7a]">초대 코드</p>
+            <strong className="mt-1 block truncate text-[28px] font-semibold leading-[1.14] tracking-[0.196px]">{roomCode}</strong>
+            <button
+              className="mt-4 h-11 w-full rounded-full border border-[#0066cc] bg-white text-[17px] tracking-[-0.374px] text-[#0066cc] active:scale-95"
+              type="button"
+              onClick={copyInviteLink}
+            >
+              초대 링크 복사
+            </button>
+          </div>
+
+          <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[12px] tracking-[-0.12px] text-[#7a7a7a]">사전 설정</p>
+                <strong className="mt-1 block text-[24px] font-semibold tracking-[0.231px]">{activeRoundLabel}</strong>
+              </div>
+              {isCurrentHost && <SlidersHorizontal className="size-5 text-[#0066cc]" />}
+            </div>
+            {isCurrentHost && roundSizeOptions.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                {roundSizeOptions.map((roundSize) => (
+                  <button
+                    key={roundSize}
+                    className={`h-10 rounded-full border text-[14px] tracking-[-0.224px] active:scale-95 ${
+                      activeRoundSize === roundSize
+                        ? "border-[#0066cc] bg-[#0066cc] text-white"
+                        : "border-[#d2d2d7] bg-white text-[#1d1d1f]"
+                    }`}
+                    type="button"
+                    onClick={() => setSelectedRoundSize(roundSize)}
+                  >
+                    {roundSize}강
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+
       {isCurrentHost && isSettingsOpen && (
-        <section className="px-4 pb-4">
+        <section className="px-4 pb-4 md:hidden">
           <div className="rounded-[18px] border border-[#e0e0e0] bg-white">
             <div className="border-b border-[#e0e0e0] px-4 py-4">
               <h2 className="text-[21px] font-semibold tracking-[0.231px]">사전 설정</h2>
@@ -1511,13 +1599,13 @@ function LobbyView({
         </section>
       )}
 
-      <section className="px-4 pb-4">
-        <div className="h-[280px]">
+      <section className="px-4 pb-4 md:col-start-1 md:px-0 md:pb-0">
+        <div className="h-[280px] md:h-[360px]">
           <ChatPanel messages={messages} onSend={onSendChat} players={players} />
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-[430px] border-t border-black/5 bg-[#f5f5f7]/90 px-4 py-3 backdrop-blur-xl">
+      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-[430px] border-t border-black/5 bg-[#f5f5f7]/90 px-4 py-3 backdrop-blur-xl md:left-1/2 md:max-w-[1180px] md:-translate-x-1/2 md:rounded-t-[18px] md:border-x md:px-6">
         <div className="grid grid-cols-[1fr_1.35fr] gap-2">
           <button
             className="h-12 rounded-full border border-[#0066cc] bg-white text-[17px] tracking-[-0.374px] text-[#0066cc] active:scale-95"
@@ -1591,8 +1679,8 @@ function PlayView({
   }, [isWaitingForOthers]);
 
   return (
-    <section className="flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3">
-      <div className="bg-white px-4 pb-3 pt-4">
+    <section className="flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-[auto_minmax(0,1fr)] md:gap-4 md:p-4">
+      <div className="bg-white px-4 pb-3 pt-4 md:col-span-2 md:rounded-[18px] md:border md:border-[#e0e0e0] md:px-5 md:py-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#1d1d1f]">
             {roundLabel}
@@ -1610,7 +1698,7 @@ function PlayView({
         )}
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 items-stretch gap-px bg-black">
+      <div className="grid shrink-0 grid-cols-2 items-stretch gap-px bg-black md:min-h-0 md:rounded-[18px] md:border md:border-black md:h-full md:overflow-hidden">
         <VoteCard
           disabled={isVoting}
           item={match.item_a}
@@ -1627,7 +1715,7 @@ function PlayView({
         />
       </div>
 
-      <div className="min-h-0 flex-1 px-3 pt-3">
+      <div className="min-h-0 flex-1 px-3 pt-3 md:px-0 md:pt-0">
         <ChatPanel messages={messages} onSend={onSendChat} players={players} />
       </div>
     </section>
@@ -1647,36 +1735,51 @@ function VoteCard({
   selected: boolean;
   stamps: VoteStamp[];
 }) {
+  const [playingItemId, setPlayingItemId] = useState<number | null>(null);
+  const isPlaying = playingItemId === item.id;
+
+  function handleSelect() {
+    if (!disabled) {
+      onSelect();
+    }
+  }
+
   return (
-    <button
-      className={`relative h-[42dvh] min-h-[300px] max-h-[430px] min-w-0 overflow-hidden bg-black text-left active:scale-[0.995] disabled:opacity-80 ${
+    <div
+      className={`relative h-[42dvh] min-h-[300px] max-h-[430px] min-w-0 overflow-hidden bg-black text-left active:scale-[0.995] disabled:opacity-80 md:h-full md:max-h-none ${
         selected ? "ring-2 ring-inset ring-[#0066cc]" : ""
       }`}
-      type="button"
-      disabled={disabled}
-      onClick={onSelect}
+      onClick={handleSelect}
     >
       <MediaPreview
         alt={`${item.name} 후보 이미지`}
         className="absolute inset-0 size-full"
+        isPlaying={isPlaying}
+        onPlay={() => setPlayingItemId(item.id)}
         src={item.image_url}
       />
       <VoteStampLayer stamps={stamps} />
-      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pb-4 pt-16 text-center">
+      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-3 pb-4 pt-16 text-center md:px-6 md:pb-8 md:pt-24">
         <div className="min-w-0">
-          <strong className="line-clamp-2 block text-[20px] font-semibold leading-[1.15] tracking-[-0.374px] text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.75)]">
+          <strong className="line-clamp-2 block text-[20px] font-semibold leading-[1.15] tracking-[-0.374px] text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.75)] md:text-[34px] md:leading-[1.12]">
             {item.name}
           </strong>
         </div>
-        <span
-          className={`mx-auto mt-3 inline-flex h-9 items-center justify-center rounded-full px-4 text-[14px] font-semibold tracking-[-0.224px] shadow-[0_8px_20px_rgba(0,0,0,0.24)] ${
+        <button
+          className={`mx-auto mt-3 inline-flex h-9 items-center justify-center rounded-full px-4 text-[14px] font-semibold tracking-[-0.224px] shadow-[0_8px_20px_rgba(0,0,0,0.24)] disabled:opacity-70 ${
             selected ? "bg-white text-[#1d1d1f]" : "bg-[#0066cc] text-white"
           }`}
+          type="button"
+          disabled={disabled}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleSelect();
+          }}
         >
           {selected ? "선택함" : "선택"}
-        </span>
+        </button>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -1691,6 +1794,19 @@ function ChatPanel({
 }) {
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const chatGroups = messages.reduce<
+    Array<{ memberId: number; messages: ChatResponse[] }>
+  >((groups, chat) => {
+    const lastGroup = groups.at(-1);
+
+    if (lastGroup?.memberId === chat.memberId) {
+      lastGroup.messages.push(chat);
+    } else {
+      groups.push({ memberId: chat.memberId, messages: [chat] });
+    }
+
+    return groups;
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -1716,41 +1832,61 @@ function ChatPanel({
     <section className="flex h-full min-h-[210px] flex-col overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[#fafafc] px-3 py-3"
+        className="min-h-0 flex-1 overflow-y-auto bg-[#fafafc] px-3 py-3 md:px-4 md:py-4"
       >
-        {messages.map((chat, index) => {
-            const player = players.find((currentPlayer) => currentPlayer.id === chat.memberId);
+        {chatGroups.map((group, groupIndex) => {
+          const player = players.find((currentPlayer) => currentPlayer.id === group.memberId);
+          const lastMessage = group.messages.at(-1);
 
-            return (
-              <div key={`${chat.memberId}-${chat.createdAt}-${index}`} className="flex items-start gap-2">
-                <Image
-                  alt={`${player?.name ?? "참가자"} 아바타`}
-                  className="mt-0.5 size-8 shrink-0 rounded-full border border-[#e0e0e0] bg-white"
-                  height={32}
-                  src={player?.avatar ?? getAvatarForName(String(chat.memberId))}
-                  unoptimized
-                  width={32}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="max-w-[120px] truncate text-[12px] font-normal leading-none tracking-[-0.12px] text-[#333333]">
-                      {player?.name ?? "참가자"}
-                    </span>
-                    <time className="text-[10px] leading-[1.3] tracking-[-0.08px] text-[#7a7a7a]">
-                      {formatChatTime(chat.createdAt)}
+          return (
+            <div
+              key={`${group.memberId}-${group.messages[0]?.createdAt ?? groupIndex}`}
+              className="mt-3 flex items-start gap-2 first:mt-0 md:gap-3"
+            >
+              <Image
+                alt={`${player?.name ?? "참가자"} 아바타`}
+                className="size-8 shrink-0 rounded-full border border-[#e0e0e0] bg-white md:size-10"
+                height={40}
+                src={player?.avatar ?? getAvatarForName(String(group.memberId))}
+                unoptimized
+                width={40}
+              />
+              <div className="flex min-w-0 max-w-[78%] flex-col items-start md:max-w-[82%]">
+                <div className="mb-1 flex max-w-full items-center gap-2">
+                  <span className="max-w-[120px] truncate text-[12px] font-normal leading-none tracking-[-0.12px] text-[#333333] md:max-w-[160px] md:text-[13px]">
+                    {player?.name ?? "참가자"}
+                  </span>
+                  {lastMessage && (
+                    <time className="text-[10px] leading-[1.3] tracking-[-0.08px] text-[#7a7a7a] md:text-[11px]">
+                      {formatChatTime(lastMessage.createdAt)}
                     </time>
-                  </div>
-                  <p className="mt-1 break-words rounded-[18px] rounded-tl-[8px] border border-[#f0f0f0] bg-white px-3 py-2 text-[15px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] shadow-sm">
-                    {chat.message}
-                  </p>
+                  )}
+                </div>
+                <div className="flex max-w-full flex-col items-start gap-1">
+                  {group.messages.map((chat, messageIndex) => {
+                    const isFirstInGroup = messageIndex === 0;
+                    const isLastInGroup = messageIndex === group.messages.length - 1;
+
+                    return (
+                      <p
+                        key={`${chat.memberId}-${chat.createdAt}-${messageIndex}`}
+                        className={`w-fit max-w-full break-words border border-[#f0f0f0] bg-white px-3 py-2 text-[15px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] shadow-sm md:px-4 md:py-2.5 md:text-[16px] ${
+                          isFirstInGroup ? "rounded-tl-[18px]" : "rounded-tl-[8px]"
+                        } ${isLastInGroup ? "rounded-bl-[18px]" : "rounded-bl-[8px]"} rounded-r-[18px]`}
+                      >
+                        {chat.message}
+                      </p>
+                    );
+                  })}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
       </div>
-      <form className="flex h-16 items-center gap-2 border-t border-[#f0f0f0] bg-[#f5f5f7]/90 px-3 py-2 backdrop-blur-xl" onSubmit={handleSubmit}>
+      <form className="flex h-16 items-center gap-2 border-t border-[#f0f0f0] bg-[#f5f5f7]/90 px-3 py-2 backdrop-blur-xl md:h-[72px] md:px-4 md:py-3" onSubmit={handleSubmit}>
         <input
-          className="h-11 min-w-0 flex-1 rounded-full border border-black/10 bg-white px-5 text-[17px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] outline-none placeholder:text-[#7a7a7a] focus:border-[#0071e3] focus:ring-4 focus:ring-[#0066cc]/10"
+          className="h-11 min-w-0 flex-1 rounded-full border border-black/10 bg-white px-5 text-[17px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] outline-none placeholder:text-[#7a7a7a] focus:border-[#0071e3] focus:ring-4 focus:ring-[#0066cc]/10 md:h-12"
           maxLength={120}
           placeholder="메시지"
           value={message}
@@ -1758,7 +1894,7 @@ function ChatPanel({
         />
         <button
           aria-label="채팅 보내기"
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white active:scale-95 disabled:bg-[#d2d2d7] disabled:text-[#7a7a7a]"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white active:scale-95 disabled:bg-[#d2d2d7] disabled:text-[#7a7a7a] md:size-12"
           type="submit"
           disabled={message.trim().length === 0}
         >
@@ -1836,13 +1972,15 @@ function ResultView({
 
   return (
     <section className="pb-8">
-      <div className="bg-[#272729] px-5 pb-8 pt-8 text-white">
+      <div className="bg-[#272729] px-5 pb-8 pt-8 text-white md:px-8 md:pb-12 md:pt-14">
+        <div className="mx-auto max-w-[960px]">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#cccccc]">최종 결과</p>
-        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px]">
+        <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">
           우승자가 결정됐어요.
         </h1>
+        </div>
       </div>
-      <div className="px-4 py-4">
+      <div className="mx-auto max-w-[780px] px-4 py-4 md:px-8 md:py-6">
         <div className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
           {winner ? (
             <>
@@ -1863,7 +2001,7 @@ function ResultView({
           )}
         </div>
         <button
-          className="mt-4 h-12 w-full rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95"
+          className="mt-4 h-12 w-full rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 md:mx-auto md:max-w-[320px]"
           type="button"
           onClick={onBackToLobby}
         >
@@ -1880,23 +2018,25 @@ function RankingView({ game, onJoin }: { game: WorldcupGame; onJoin: () => void 
   return (
     <>
       <section className="pb-8">
-        <div className="bg-[#272729] px-5 pb-8 pt-8 text-white">
+        <div className="bg-[#272729] px-5 pb-8 pt-8 text-white md:px-8 md:pb-12 md:pt-14">
+          <div className="mx-auto max-w-[960px]">
           <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#cccccc]">랭킹보기</p>
-          <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px]">{game.title}</h1>
+          <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">{game.title}</h1>
+          </div>
         </div>
-        <div className="px-4 py-4">
+        <div className="mx-auto max-w-[960px] px-4 py-4 md:px-8 md:py-6">
           <div className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
             {game.ranking.map((rank, index) => (
               <button
                 key={rank.name}
-                className="grid w-full grid-cols-[36px_56px_1fr_auto] items-center gap-3 border-b border-[#f0f0f0] px-4 py-3 text-left last:border-b-0 active:bg-[#f5f5f7]"
+                className="grid w-full grid-cols-[36px_56px_1fr_auto] items-center gap-3 border-b border-[#f0f0f0] px-4 py-3 text-left last:border-b-0 active:bg-[#f5f5f7] md:grid-cols-[56px_76px_1fr_auto] md:px-6 md:py-4"
                 type="button"
                 onClick={() => setExpandedRank(rank)}
               >
                 <span className="text-[14px] font-semibold tracking-[-0.224px] text-[#7a7a7a]">#{index + 1}</span>
                 <MediaPreview
                   alt={`${rank.name} 랭킹 이미지`}
-                  className="size-14 rounded-xl"
+                  className="size-14 rounded-xl md:size-[76px]"
                   src={rank.imageUrl}
                 />
                 <div className="min-w-0">
@@ -1908,11 +2048,20 @@ function RankingView({ game, onJoin }: { game: WorldcupGame; onJoin: () => void 
                 <Expand className="size-4 text-[#7a7a7a]" />
               </button>
             ))}
+            <div className="border-t border-[#f0f0f0] bg-white px-4 py-4 md:flex md:items-center md:justify-between md:gap-4 md:px-6">
+              <p className="hidden text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a] md:block">
+                친구와 함께 이 월드컵을 바로 시작할 수 있습니다.
+              </p>
+              <button
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 md:w-[260px]"
+                type="button"
+                onClick={onJoin}
+              >
+                <Play className="size-4 fill-white" />
+                함께하기
+              </button>
+            </div>
           </div>
-          <button className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95" type="button" onClick={onJoin}>
-            <Play className="size-4 fill-white" />
-            함께하기
-          </button>
         </div>
       </section>
 
@@ -1923,7 +2072,7 @@ function RankingView({ game, onJoin }: { game: WorldcupGame; onJoin: () => void 
           aria-label="랭킹 이미지 닫기"
           onClick={() => setExpandedRank(null)}
         >
-          <div className="w-full max-w-[390px] overflow-hidden rounded-[18px] bg-white text-left">
+          <div className="w-full max-w-[390px] overflow-hidden rounded-[18px] bg-white text-left md:max-w-[720px]">
             <ExpandedMedia alt={`${expandedRank.name} 확대 미디어`} src={expandedRank.imageUrl} />
             <div className="px-4 py-4">
               <p className="text-[13px] tracking-[-0.12px] text-[#7a7a7a]">이미지를 누르면 닫힙니다.</p>
