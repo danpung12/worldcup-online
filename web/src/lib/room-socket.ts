@@ -84,6 +84,7 @@ export function getRoomSocket() {
   socket ??= io(socketBaseUrl, {
     autoConnect: false,
     transports: ["websocket", "polling"],
+    withCredentials: true,
   });
 
   return socket;

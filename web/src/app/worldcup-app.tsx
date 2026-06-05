@@ -10,6 +10,8 @@ import {
   Crown,
   Expand,
   ImagePlus,
+  LogIn,
+  LogOut,
   Plus,
   Play,
   Search,
@@ -19,6 +21,7 @@ import {
   SlidersHorizontal,
   Trophy,
   Trash2,
+  UserRound,
   Users,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +43,7 @@ import {
   type WorldcupItemResponse,
 } from "@/lib/room-socket";
 import {
+  apiBaseUrl,
   createWorldcupGame,
   fetchWorldcupGames,
   mockGames,
@@ -51,6 +55,10 @@ import { type Player, useWorldcupStore } from "@/store/worldcup-store";
 
 type WorldcupAppProps = {
   initialRoomCode?: string;
+};
+type AuthUser = {
+  nickname: string;
+  profileImage?: string | null;
 };
 type HomeSortMode = "popular" | "latest";
 type VoteStamp = {
@@ -64,6 +72,24 @@ type VoteStamp = {
   y: number;
 };
 const validRoundSizes = [8, 16, 32, 64, 128];
+const authHintStorageKey = "worldcup.authHint";
+
+function readInitialAuthUser(): AuthUser | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+
+  if (
+    searchParams.get("login") === "success" ||
+    localStorage.getItem(authHintStorageKey)
+  ) {
+    return { nickname: "로그인 사용자" };
+  }
+
+  return null;
+}
 
 export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const router = useRouter();
@@ -97,6 +123,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(readInitialAuthUser);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
     games.find((game) => game.id === selectedGameId) ?? games[0] ?? mockGames[0];
@@ -117,6 +144,15 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [selectedGameId, view]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+
+    if (searchParams.get("login") === "success") {
+      localStorage.setItem(authHintStorageKey, "true");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     if (initialRoomCode) {
@@ -419,6 +455,22 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     sendChat(message);
   }
 
+  function handleLogin() {
+    window.location.href = `${apiBaseUrl}/auth/kakao`;
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch(`${apiBaseUrl}/auth/logout`, {
+        credentials: "include",
+        method: "POST",
+      });
+    } finally {
+      localStorage.removeItem(authHintStorageKey);
+      setAuthUser(null);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
       <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#f5f5f7] md:max-w-none">
@@ -426,9 +478,12 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
           title={titleByView[view]}
           canGoBack={view !== "home"}
           showBrandBar={view !== "play" && view !== "lobby"}
+          authUser={authUser}
           onBack={handleBackToHome}
           onCreate={() => setView("create")}
           onHome={handleBackToHome}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
         />
 
         {view === "home" && (
@@ -714,21 +769,27 @@ function AppChrome({
   title,
   canGoBack,
   showBrandBar = true,
+  authUser,
   onBack,
   onCreate,
   onHome,
+  onLogin,
+  onLogout,
 }: {
   title: string;
   canGoBack: boolean;
   showBrandBar?: boolean;
+  authUser: AuthUser | null;
   onBack: () => void;
   onCreate: () => void;
   onHome: () => void;
+  onLogin: () => void;
+  onLogout: () => void;
 }) {
   return (
     <>
       <header className="bg-black text-white">
-        <div className="mx-auto flex h-11 w-full max-w-[1180px] items-center justify-between px-4 md:px-8">
+        <div className="mx-auto flex h-11 w-full max-w-[1180px] items-center justify-between gap-2 px-4 md:px-8">
           <button
             aria-label="뒤로"
             className={`grid size-8 place-items-center rounded-full text-white/90 ${canGoBack ? "" : "invisible"}`}
@@ -737,7 +798,8 @@ function AppChrome({
           >
             <ArrowLeft className="size-4" />
           </button>
-          <div className="text-xs font-normal tracking-[-0.12px]">{title}</div>
+          <div className="min-w-0 flex-1 truncate text-center text-xs font-normal tracking-[-0.12px]">{title}</div>
+          <AuthControl authUser={authUser} onLogin={onLogin} onLogout={onLogout} />
           <button aria-label="공유" className="grid size-8 place-items-center rounded-full text-white/90" type="button">
             <Share2 className="size-4" />
           </button>
@@ -764,6 +826,47 @@ function AppChrome({
         </div>
       )}
     </>
+  );
+}
+
+function AuthControl({
+  authUser,
+  onLogin,
+  onLogout,
+}: {
+  authUser: AuthUser | null;
+  onLogin: () => void;
+  onLogout: () => void;
+}) {
+  if (authUser) {
+    return (
+      <div className="flex h-8 min-w-0 items-center rounded-full bg-white/10 pl-2 pr-1 text-white">
+        <UserRound className="size-4 shrink-0 text-white/90" />
+        <span className="ml-1.5 hidden max-w-[92px] truncate text-xs tracking-[-0.12px] text-white/90 sm:inline">
+          {authUser.nickname}
+        </span>
+        <button
+          aria-label="로그아웃"
+          className="ml-1 grid size-6 shrink-0 place-items-center rounded-full text-white/80 active:scale-95"
+          type="button"
+          onClick={onLogout}
+        >
+          <LogOut className="size-3.5" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-white/10 px-2.5 text-xs tracking-[-0.12px] text-white/90 active:scale-95"
+      type="button"
+      onClick={onLogin}
+    >
+      <LogIn className="size-3.5" />
+      <span className="hidden sm:inline">카카오 로그인</span>
+      <span className="sm:hidden">로그인</span>
+    </button>
   );
 }
 

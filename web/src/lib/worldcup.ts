@@ -134,6 +134,7 @@ export const mockGames: WorldcupGame[] = [
 
 export async function fetchWorldcupGames() {
   const response = await fetch(`${apiBaseUrl}/worldcup`, {
+    credentials: "include",
     headers: {
       Accept: "application/json",
     },
@@ -154,6 +155,7 @@ export async function uploadImageFile(file: File) {
       contentType: file.type,
       fileName: file.name,
     }),
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -183,6 +185,7 @@ export async function uploadImageFile(file: File) {
 export async function createWorldcupGame(input: CreateWorldcupGameInput) {
   const response = await fetch(`${apiBaseUrl}/worldcup`, {
     body: JSON.stringify(input),
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
