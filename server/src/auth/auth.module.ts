@@ -4,6 +4,7 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaService } from 'prisma/prisma.service';
 import { KakaoStrategy } from './strategy/kakao.strategy';
+import { JwtStrategy } from './strategy/jwt.strategy';
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { KakaoStrategy } from './strategy/kakao.strategy';
   ],
 
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, KakaoStrategy],
+  providers: [AuthService, PrismaService, KakaoStrategy, JwtStrategy],
 })
 export class AuthModule {}

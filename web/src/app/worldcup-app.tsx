@@ -10,7 +10,6 @@ import {
   Crown,
   Expand,
   ImagePlus,
-  LogIn,
   LogOut,
   Plus,
   Play,
@@ -51,14 +50,12 @@ import {
   type WorldcupGame,
   uploadImageFile,
 } from "@/lib/worldcup";
+import { logoutAuth, type AuthUser } from "@/lib/auth";
+import { useAuthStore } from "@/store/auth-store";
 import { type Player, useWorldcupStore } from "@/store/worldcup-store";
 
 type WorldcupAppProps = {
   initialRoomCode?: string;
-};
-type AuthUser = {
-  nickname: string;
-  profileImage?: string | null;
 };
 type HomeSortMode = "popular" | "latest";
 type VoteStamp = {
@@ -72,24 +69,6 @@ type VoteStamp = {
   y: number;
 };
 const validRoundSizes = [8, 16, 32, 64, 128];
-const authHintStorageKey = "worldcup.authHint";
-
-function readInitialAuthUser(): AuthUser | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const searchParams = new URLSearchParams(window.location.search);
-
-  if (
-    searchParams.get("login") === "success" ||
-    localStorage.getItem(authHintStorageKey)
-  ) {
-    return { nickname: "로그인 사용자" };
-  }
-
-  return null;
-}
 
 export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const router = useRouter();
@@ -110,6 +89,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const selectGame = useWorldcupStore((state) => state.selectGame);
   const enterLobby = useWorldcupStore((state) => state.enterLobby);
   const setPlayers = useWorldcupStore((state) => state.setPlayers);
+  const authUser = useAuthStore((state) => state.user);
+  const setLoggedOut = useAuthStore((state) => state.setLoggedOut);
   const [currentMember, setCurrentMember] = useState<{
     avatar: string;
     memberId: number;
@@ -123,7 +104,6 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
-  const [authUser, setAuthUser] = useState<AuthUser | null>(readInitialAuthUser);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
     games.find((game) => game.id === selectedGameId) ?? games[0] ?? mockGames[0];
@@ -144,15 +124,6 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [selectedGameId, view]);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-
-    if (searchParams.get("login") === "success") {
-      localStorage.setItem(authHintStorageKey, "true");
-      window.history.replaceState(null, "", window.location.pathname);
-    }
-  }, []);
 
   useEffect(() => {
     if (initialRoomCode) {
@@ -461,13 +432,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   async function handleLogout() {
     try {
-      await fetch(`${apiBaseUrl}/auth/logout`, {
-        credentials: "include",
-        method: "POST",
-      });
+      await logoutAuth();
     } finally {
-      localStorage.removeItem(authHintStorageKey);
-      setAuthUser(null);
+      setLoggedOut();
     }
   }
 
@@ -859,14 +826,31 @@ function AuthControl({
 
   return (
     <button
-      className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full bg-white/10 px-2.5 text-xs tracking-[-0.12px] text-white/90 active:scale-95"
+      aria-label="카카오 로그인"
+      className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#FEE500] px-2.5 text-xs font-semibold text-black/85 shadow-sm ring-1 ring-black/5 active:scale-95 sm:px-3"
       type="button"
       onClick={onLogin}
     >
-      <LogIn className="size-3.5" />
+      <KakaoSymbol className="size-3.5 shrink-0 text-black" />
       <span className="hidden sm:inline">카카오 로그인</span>
       <span className="sm:hidden">로그인</span>
     </button>
+  );
+}
+
+function KakaoSymbol({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 4C6.48 4 2 7.45 2 11.7c0 2.72 1.84 5.12 4.62 6.48l-.72 2.62c-.1.37.32.66.64.45l3.17-2.08c.73.11 1.5.17 2.29.17 5.52 0 10-3.45 10-7.7C22 7.45 17.52 4 12 4Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }
 

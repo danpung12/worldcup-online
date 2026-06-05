@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import { GetUser } from './decorator/user.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -49,5 +50,11 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res) {
     res.clearCookie('accessToken', this.getCookieOptions());
     res.clearCookie('refreshToken', this.getCookieOptions());
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  me(@GetUser('id') userId: number) {
+    return this.authService.getMe(userId);
   }
 }
