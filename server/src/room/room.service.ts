@@ -3,16 +3,47 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { v4 } from 'uuid';
+
 
 @Injectable()
 export class RoomService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createRoom(dto: CreateRoomDto, userId?: number) {
+    if (userId) {
+      const loginUser = await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!loginUser) {
+        throw new UnauthorizedException('사용자 정보를 찾을 수 없습니다.');
+      }
+      return this.prisma.worldcupRoom.create({
+        data: {
+          game_id: dto.gameId,
+          room_code: v4().slice(0, 5),
+          member: {
+            create: {
+              nickname: loginUser.nickname,
+              is_host: true,
+              user_id: userId,
+              avatar: loginUser.profile_image,
+            },
+          },
+        },
+        include: {
+          member: true,
+        },
+      });
+    }
+
     return this.prisma.worldcupRoom.create({
       data: {
         game_id: dto.gameId,
@@ -21,7 +52,6 @@ export class RoomService {
           create: {
             nickname: dto.nickname,
             is_host: true,
-            user_id: userId,
             avatar: dto.avatar,
           },
         },

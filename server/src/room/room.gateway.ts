@@ -9,10 +9,13 @@ import { RoomService } from './room.service';
 import { Server, Socket } from 'socket.io';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { ChatService } from './chat.service';
+import { UseGuards } from '@nestjs/common';
+import { OptionalJwtAuthGuard } from 'src/auth/guard/optional-jwt-auth.guard';
 
 @WebSocketGateway({
   cors: {
     origin: ['http://localhost:3000', 'https://worldcup-online.vercel.app'],
+    credentials: true,
   },
 })
 export class RoomGateway {
@@ -25,6 +28,7 @@ export class RoomGateway {
   server!: Server;
 
   // 초대 코드로 방 입장.
+
   @SubscribeMessage('joinRoom')
   async joinRoom(
     @MessageBody() body: { roomCode: string; nickname: string; avatar: string },
@@ -49,12 +53,15 @@ export class RoomGateway {
   }
 
   //방 생성
+  @UseGuards(OptionalJwtAuthGuard)
   @SubscribeMessage('createRoom')
   async createRoom(
     @MessageBody() body: CreateRoomDto,
     @ConnectedSocket() client: Socket,
   ) {
-    const room = await this.roomService.createRoom(body);
+    const userId = client.data.user?.id;
+
+    const room = await this.roomService.createRoom(body, userId);
     client.join(room.room_code);
     client.data.roomCode = room.room_code;
     client.data.memberId = room.member[0].id;
@@ -91,7 +98,6 @@ export class RoomGateway {
     return result;
   }
 
-
   @SubscribeMessage('sendChat')
   sendChat(
     @MessageBody() body: { message: string },
@@ -103,6 +109,6 @@ export class RoomGateway {
       createdAt: new Date(),
     });
 
-    this.server.to(client.data.roomCode).emit('chatUpdate', chat)
+    this.server.to(client.data.roomCode).emit('chatUpdate', chat);
   }
 }

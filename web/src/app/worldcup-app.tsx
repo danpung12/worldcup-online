@@ -70,6 +70,13 @@ type VoteStamp = {
 };
 const validRoundSizes = [8, 16, 32, 64, 128];
 
+function getAuthProfile(user: AuthUser): Pick<Player, "name" | "avatar"> {
+  return {
+    name: user.nickname,
+    avatar: user.profile_image ?? getAvatarForName(user.nickname),
+  };
+}
+
 export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -369,7 +376,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     }
   }
 
-  async function handleProfileComplete(profile: Pick<Player, "name" | "avatar">) {
+  async function enterRoomWithProfile(
+    profile: Pick<Player, "name" | "avatar">,
+    gameId = selectedGame.id,
+  ) {
     if (initialRoomCode) {
       const result = await joinRoom({
         avatar: profile.avatar,
@@ -396,7 +406,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
     const result = await createRoom({
       avatar: profile.avatar,
-      gameId: selectedGame.id,
+      gameId,
       nickname: profile.name,
     });
     const createdMember = result.member ?? result.room.member[0];
@@ -420,6 +430,24 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         memberContext.avatar,
       ),
     );
+  }
+
+  async function handleProfileComplete(profile: Pick<Player, "name" | "avatar">) {
+    await enterRoomWithProfile(profile);
+  }
+
+  async function handleGameJoin(gameId: number) {
+    selectGame(gameId, authUser ? "home" : "profile");
+
+    if (!authUser) {
+      return;
+    }
+
+    try {
+      await enterRoomWithProfile(getAuthProfile(authUser), gameId);
+    } catch {
+      selectGame(gameId, "profile");
+    }
   }
 
   function handleSendChat(message: string) {
@@ -457,7 +485,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
           <HomeView
             games={games}
             hasBackendError={hasGamesError}
-            onJoin={(id) => selectGame(id, "profile")}
+            onJoin={handleGameJoin}
             onRanking={(id) => selectGame(id, "ranking")}
           />
         )}
@@ -496,7 +524,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             onBackToLobby={() => setView("lobby")}
           />
         )}
-        {view === "ranking" && <RankingView game={selectedGame} onJoin={() => selectGame(selectedGame.id, "profile")} />}
+        {view === "ranking" && <RankingView game={selectedGame} onJoin={() => handleGameJoin(selectedGame.id)} />}
       </div>
     </main>
   );
