@@ -28,6 +28,16 @@ type BackendWorldcupGame = {
   items: BackendWorldcupItem[];
 };
 
+export type MyWorldcupGame = {
+  id: number;
+  title: string;
+  description: string | null;
+  thumbnail: string | null;
+  play_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
 type UploadResponse = {
   Key: string;
   fileUrl: string;
@@ -50,6 +60,7 @@ export type CreateWorldcupGameInput = {
 
 export const queryKeys = {
   games: ["worldcup", "games"] as const,
+  myGames: ["worldcup", "my-games"] as const,
 };
 
 const defaultApiBaseUrl =
@@ -149,6 +160,25 @@ export async function fetchWorldcupGames() {
   return games.map(mapBackendGame);
 }
 
+export async function fetchMyWorldcupGames() {
+  const response = await fetch(`${apiBaseUrl}/worldcup/mygame`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (response.status === 401) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
+  if (!response.ok) {
+    throw new Error("내 월드컵 목록을 불러오지 못했습니다.");
+  }
+
+  return response.json() as Promise<MyWorldcupGame[]>;
+}
+
 export async function uploadImageFile(file: File) {
   const presignedResponse = await fetch(`${apiBaseUrl}/upload/presigned-url`, {
     body: JSON.stringify({
@@ -197,6 +227,37 @@ export async function createWorldcupGame(input: CreateWorldcupGameInput) {
   }
 
   return response.json() as Promise<BackendWorldcupGame>;
+}
+
+export async function updateWorldcupGame(
+  gameId: number,
+  input: CreateWorldcupGameInput["game"],
+) {
+  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}`, {
+    body: JSON.stringify({ game: input }),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error("월드컵을 수정하지 못했습니다.");
+  }
+
+  return response.json() as Promise<MyWorldcupGame>;
+}
+
+export async function deleteWorldcupGame(gameId: number) {
+  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}`, {
+    credentials: "include",
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("월드컵을 삭제하지 못했습니다.");
+  }
 }
 
 function mapBackendGame(game: BackendWorldcupGame): WorldcupGame {

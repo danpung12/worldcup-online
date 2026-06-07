@@ -11,6 +11,7 @@ import {
   Expand,
   ImagePlus,
   LogOut,
+  Pencil,
   Plus,
   Play,
   Search,
@@ -22,6 +23,7 @@ import {
   Trash2,
   UserRound,
   Users,
+  X,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,9 +46,13 @@ import {
 import {
   apiBaseUrl,
   createWorldcupGame,
+  deleteWorldcupGame,
+  fetchMyWorldcupGames,
   fetchWorldcupGames,
   mockGames,
   queryKeys,
+  updateWorldcupGame,
+  type MyWorldcupGame,
   type WorldcupGame,
   uploadImageFile,
 } from "@/lib/worldcup";
@@ -111,7 +117,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
+  const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
+  const [shareToastMessage, setShareToastMessage] = useState<string | null>(null);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
     games.find((game) => game.id === selectedGameId) ?? games[0] ?? mockGames[0];
   const currentPlayer = currentMember
@@ -142,6 +151,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     return () => {
       if (nextMatchTimerRef.current) {
         clearTimeout(nextMatchTimerRef.current);
+      }
+      if (shareToastTimerRef.current) {
+        clearTimeout(shareToastTimerRef.current);
       }
     };
   }, []);
@@ -369,11 +381,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   async function handleCreateComplete() {
     await queryClient.invalidateQueries({ queryKey: queryKeys.games });
-    setView("home");
-
-    if (initialRoomCode) {
-      router.replace("/");
-    }
+    await queryClient.invalidateQueries({ queryKey: queryKeys.myGames });
   }
 
   async function enterRoomWithProfile(
@@ -454,6 +462,35 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     sendChat(message);
   }
 
+  function handleCreateClick() {
+    if (!authUser) {
+      setShowLoginRequiredModal(true);
+      return;
+    }
+
+    setView("create");
+  }
+
+  async function handleShareHomeUrl() {
+    const homeUrl = `${window.location.origin}/`;
+
+    try {
+      await copyTextToClipboard(homeUrl);
+      setShareToastMessage("링크가 복사되었습니다");
+    } catch {
+      setShareToastMessage("링크 복사에 실패했습니다");
+    }
+
+    if (shareToastTimerRef.current) {
+      clearTimeout(shareToastTimerRef.current);
+    }
+
+    shareToastTimerRef.current = setTimeout(() => {
+      setShareToastMessage(null);
+      shareToastTimerRef.current = null;
+    }, 1600);
+  }
+
   function handleLogin() {
     window.location.href = `${apiBaseUrl}/auth/kakao`;
   }
@@ -475,10 +512,11 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
           showBrandBar={view !== "play" && view !== "lobby"}
           authUser={authUser}
           onBack={handleBackToHome}
-          onCreate={() => setView("create")}
+          onCreate={handleCreateClick}
           onHome={handleBackToHome}
           onLogin={handleLogin}
           onLogout={handleLogout}
+          onShare={handleShareHomeUrl}
         />
 
         {view === "home" && (
@@ -489,7 +527,13 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             onRanking={(id) => selectGame(id, "ranking")}
           />
         )}
-        {view === "create" && <CreateView onComplete={handleCreateComplete} />}
+        {view === "create" && (
+          <CreateView
+            authUser={authUser}
+            onComplete={handleCreateComplete}
+            onLogin={handleLogin}
+          />
+        )}
         {view === "profile" && <ProfileView game={selectedGame} onComplete={handleProfileComplete} />}
         {view === "lobby" && (
           <LobbyView
@@ -525,9 +569,47 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
           />
         )}
         {view === "ranking" && <RankingView game={selectedGame} onJoin={() => handleGameJoin(selectedGame.id)} />}
+
+        {showLoginRequiredModal && (
+          <LoginRequiredModal
+            onCancel={() => setShowLoginRequiredModal(false)}
+            onConfirm={handleLogin}
+          />
+        )}
+
+        {shareToastMessage && <AppToast message={shareToastMessage} />}
       </div>
     </main>
   );
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall back to a temporary textarea when the Clipboard API is blocked.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    const didCopy = document.execCommand("copy");
+
+    if (!didCopy) {
+      throw new Error("Copy command failed.");
+    }
+  } finally {
+    document.body.removeChild(textarea);
+  }
 }
 
 function mapRoomMembers(
@@ -770,6 +852,7 @@ function AppChrome({
   onHome,
   onLogin,
   onLogout,
+  onShare,
 }: {
   title: string;
   canGoBack: boolean;
@@ -780,6 +863,7 @@ function AppChrome({
   onHome: () => void;
   onLogin: () => void;
   onLogout: () => void;
+  onShare: () => void;
 }) {
   return (
     <>
@@ -795,7 +879,12 @@ function AppChrome({
           </button>
           <div className="min-w-0 flex-1 truncate text-center text-xs font-normal tracking-[-0.12px]">{title}</div>
           <AuthControl authUser={authUser} onLogin={onLogin} onLogout={onLogout} />
-          <button aria-label="공유" className="grid size-8 place-items-center rounded-full text-white/90" type="button">
+          <button
+            aria-label="공유"
+            className="grid size-8 place-items-center rounded-full text-white/90 active:scale-95"
+            type="button"
+            onClick={onShare}
+          >
             <Share2 className="size-4" />
           </button>
         </div>
@@ -835,9 +924,9 @@ function AuthControl({
 }) {
   if (authUser) {
     return (
-      <div className="flex h-8 min-w-0 items-center rounded-full bg-white/10 pl-2 pr-1 text-white">
+      <div className="flex h-8 min-w-0 max-w-[132px] items-center rounded-full bg-white/10 pl-2 pr-1 text-white sm:max-w-[170px]">
         <UserRound className="size-4 shrink-0 text-white/90" />
-        <span className="ml-1.5 hidden max-w-[92px] truncate text-xs tracking-[-0.12px] text-white/90 sm:inline">
+        <span className="ml-1.5 max-w-[64px] truncate text-xs tracking-[-0.12px] text-white/90 sm:max-w-[92px]">
           {authUser.nickname}
         </span>
         <button
@@ -879,6 +968,59 @@ function KakaoSymbol({ className }: { className?: string }) {
         fill="currentColor"
       />
     </svg>
+  );
+}
+
+function LoginRequiredModal({
+  onCancel,
+  onConfirm,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-5 backdrop-blur-sm">
+      <section
+        aria-modal="true"
+        className="w-full max-w-[340px] overflow-hidden rounded-[18px] bg-white text-center"
+        role="dialog"
+      >
+        <div className="px-5 pb-5 pt-6">
+          <h2 className="text-[21px] font-semibold leading-[1.19] tracking-[0.231px] text-[#1d1d1f]">
+            로그인이 필요합니다.
+          </h2>
+          <p className="mt-2 text-[15px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+            로그인 하시겠습니까?
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-px border-t border-[#f0f0f0] bg-[#f0f0f0]">
+          <button
+            className="h-12 bg-white text-[17px] tracking-[-0.374px] text-[#7a7a7a] active:scale-95"
+            type="button"
+            onClick={onCancel}
+          >
+            아니요
+          </button>
+          <button
+            className="h-12 bg-white text-[17px] font-semibold tracking-[-0.374px] text-[#0066cc] active:scale-95"
+            type="button"
+            onClick={onConfirm}
+          >
+            예
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function AppToast({ message }: { message: string }) {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 md:bottom-8">
+      <div className="rounded-full bg-[#1d1d1f] px-5 py-3 text-[14px] leading-none tracking-[-0.224px] text-white">
+        {message}
+      </div>
+    </div>
   );
 }
 
@@ -1066,7 +1208,336 @@ function createDraftItem(index: number): DraftItem {
   };
 }
 
-function CreateView({ onComplete }: { onComplete: () => Promise<void> }) {
+function CreateView({
+  authUser,
+  onComplete,
+  onLogin,
+}: {
+  authUser: AuthUser | null;
+  onComplete: () => Promise<void>;
+  onLogin: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [mode, setMode] = useState<"list" | "new">("list");
+  const {
+    data: myGames = [],
+    isError,
+    isLoading,
+  } = useQuery({
+    queryKey: queryKeys.myGames,
+    queryFn: fetchMyWorldcupGames,
+    enabled: Boolean(authUser),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  async function refreshMyGames() {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.myGames });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.games });
+  }
+
+  if (!authUser) {
+    return (
+      <section className="pb-8">
+        <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-12 md:pt-14">
+          <div className="mx-auto max-w-[760px] md:text-center">
+            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+              내 월드컵 관리
+            </p>
+            <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">
+              로그인 후 만들 수 있어요.
+            </h1>
+            <p className="mt-3 text-[15px] leading-[1.45] tracking-[-0.224px] text-[#6e6e73]">
+              만든 월드컵을 한곳에서 보고, 새 월드컵을 추가하고, 제목과 설명을 수정할 수 있습니다.
+            </p>
+            <button
+              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 md:w-[280px]"
+              type="button"
+              onClick={onLogin}
+            >
+              로그인하기
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (mode === "new") {
+    return (
+      <CreateWorldcupForm
+        onCancel={() => setMode("list")}
+        onComplete={async () => {
+          await onComplete();
+          setMode("list");
+        }}
+      />
+    );
+  }
+
+  return (
+    <section className="pb-8">
+      <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-12 md:pt-14">
+        <div className="mx-auto max-w-[960px]">
+          <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+            내 월드컵 관리
+          </p>
+          <div className="mt-1 flex items-end justify-between gap-4">
+            <h1 className="text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">
+              만든 월드컵
+            </h1>
+            <button
+              aria-label="월드컵 만들기"
+              className="hidden size-12 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white active:scale-95 md:grid"
+              type="button"
+              onClick={() => setMode("new")}
+            >
+              <Plus className="size-5" />
+            </button>
+          </div>
+          <p className="mt-3 text-[15px] leading-[1.45] tracking-[-0.224px] text-[#6e6e73]">
+            {authUser.nickname}님이 만든 월드컵을 한눈에 보고 관리할 수 있습니다.
+          </p>
+        </div>
+      </div>
+
+      <div className="mx-auto grid max-w-[960px] gap-3 px-4 py-4 md:gap-5 md:px-8 md:py-6">
+        <button
+          className="flex min-h-[86px] items-center gap-4 rounded-[18px] border border-dashed border-[#0066cc] bg-white px-4 py-4 text-left active:scale-[0.99]"
+          type="button"
+          onClick={() => setMode("new")}
+        >
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[#0066cc] text-white">
+            <Plus className="size-5" />
+          </span>
+          <span className="min-w-0">
+            <strong className="block text-[17px] font-semibold tracking-[-0.374px] text-[#1d1d1f]">
+              새 월드컵 만들기
+            </strong>
+            <span className="mt-1 block text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+              후보 이미지를 올리고 바로 목록에 추가합니다.
+            </span>
+          </span>
+        </button>
+
+        {isLoading && (
+          <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-8 text-center text-[15px] tracking-[-0.224px] text-[#7a7a7a]">
+            내 월드컵을 불러오는 중입니다.
+          </div>
+        )}
+
+        {isError && (
+          <div className="rounded-[18px] border border-[#ffd4a3] bg-[#fff8ef] px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#8a4b00]">
+            내 월드컵 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+          </div>
+        )}
+
+        {!isLoading && !isError && myGames.length === 0 && (
+          <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-5 py-8 text-center">
+            <Trophy className="mx-auto size-8 text-[#0066cc]" />
+            <strong className="mt-3 block text-[21px] font-semibold tracking-[0.231px]">
+              아직 만든 월드컵이 없습니다.
+            </strong>
+            <p className="mt-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+              첫 월드컵을 만들면 이곳에서 수정하고 삭제할 수 있습니다.
+            </p>
+          </div>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {myGames.map((game) => (
+            <MyWorldcupCard
+              key={game.id}
+              game={game}
+              onChanged={refreshMyGames}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MyWorldcupCard({
+  game,
+  onChanged,
+}: {
+  game: MyWorldcupGame;
+  onChanged: () => Promise<void>;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(game.title);
+  const [description, setDescription] = useState(game.description ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handleSave() {
+    if (!title.trim()) {
+      setErrorMessage("제목을 입력해 주세요.");
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage(null);
+
+    try {
+      await updateWorldcupGame(game.id, {
+        description: description.trim() || undefined,
+        thumbnail: game.thumbnail ?? undefined,
+        title: title.trim(),
+      });
+      await onChanged();
+      setIsEditing(false);
+    } catch {
+      setErrorMessage("수정에 실패했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("이 월드컵을 삭제할까요?")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setErrorMessage(null);
+
+    try {
+      await deleteWorldcupGame(game.id);
+      await onChanged();
+    } catch {
+      setErrorMessage("삭제에 실패했습니다.");
+      setIsDeleting(false);
+    }
+  }
+
+  return (
+    <article className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
+      <div className="grid grid-cols-[96px_1fr] gap-3 p-3">
+        <div className="grid aspect-square place-items-center overflow-hidden rounded-lg bg-[#fafafc]">
+          {game.thumbnail ? (
+            <Image
+              alt={`${game.title} 썸네일`}
+              className="size-full object-cover"
+              height={120}
+              src={game.thumbnail}
+              unoptimized
+              width={120}
+            />
+          ) : (
+            <Trophy className="size-7 text-[#7a7a7a]" />
+          )}
+        </div>
+        <div className="min-w-0">
+          {isEditing ? (
+            <div className="space-y-2">
+              <input
+                className="h-10 w-full rounded-xl border border-[#d2d2d7] bg-white px-3 text-[15px] tracking-[-0.224px] outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-[#0066cc]/10"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+              <textarea
+                className="min-h-20 w-full resize-none rounded-xl border border-[#d2d2d7] bg-white px-3 py-2 text-[14px] leading-[1.43] tracking-[-0.224px] outline-none focus:border-[#0066cc] focus:ring-4 focus:ring-[#0066cc]/10"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </div>
+          ) : (
+            <>
+              <h2 className="line-clamp-2 text-[17px] font-semibold leading-[1.24] tracking-[-0.374px]">
+                {game.title}
+              </h2>
+              <p className="mt-1 line-clamp-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+                {game.description || "설명이 없습니다."}
+              </p>
+              <p className="mt-2 text-[12px] tracking-[-0.12px] text-[#7a7a7a]">
+                최근 수정 {formatMyWorldcupDate(game.updated_at)}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {errorMessage && (
+        <p className="mx-3 mb-2 rounded-xl bg-[#fff1f0] px-3 py-2 text-[13px] tracking-[-0.12px] text-[#b42318]">
+          {errorMessage}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-px border-t border-[#f0f0f0] bg-[#f0f0f0]">
+        {isEditing ? (
+          <>
+            <button
+              className="inline-flex h-11 items-center justify-center gap-1.5 bg-white text-[14px] tracking-[-0.224px] text-[#7a7a7a] active:scale-95"
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setTitle(game.title);
+                setDescription(game.description ?? "");
+                setErrorMessage(null);
+              }}
+            >
+              <X className="size-4" />
+              취소
+            </button>
+            <button
+              className="inline-flex h-11 items-center justify-center gap-1.5 bg-white text-[14px] tracking-[-0.224px] text-[#0066cc] active:scale-95 disabled:text-[#8bbbe8]"
+              type="button"
+              disabled={isSaving}
+              onClick={handleSave}
+            >
+              <Check className="size-4" />
+              {isSaving ? "저장 중" : "저장"}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className="inline-flex h-11 items-center justify-center gap-1.5 bg-white text-[14px] tracking-[-0.224px] text-[#0066cc] active:scale-95"
+              type="button"
+              onClick={() => setIsEditing(true)}
+            >
+              <Pencil className="size-4" />
+              수정
+            </button>
+            <button
+              className="inline-flex h-11 items-center justify-center gap-1.5 bg-white text-[14px] tracking-[-0.224px] text-[#b42318] active:scale-95 disabled:text-[#c7c7cc]"
+              type="button"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              <Trash2 className="size-4" />
+              {isDeleting ? "삭제 중" : "삭제"}
+            </button>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function formatMyWorldcupDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "최근";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
+function CreateWorldcupForm({
+  onCancel,
+  onComplete,
+}: {
+  onCancel: () => void;
+  onComplete: () => Promise<void>;
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [items, setItems] = useState<DraftItem[]>(() =>
@@ -1234,14 +1705,23 @@ function CreateView({ onComplete }: { onComplete: () => Promise<void> }) {
           </p>
         )}
 
-        <button
-          className="h-12 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8]"
-          type="button"
-          disabled={!canSubmit || isSubmitting}
-          onClick={handleSubmit}
-        >
-          {isSubmitting ? "만드는 중" : "월드컵 만들기"}
-        </button>
+        <div className="grid grid-cols-[0.9fr_1.4fr] gap-2">
+          <button
+            className="h-12 rounded-full border border-[#0066cc] bg-white text-[17px] tracking-[-0.374px] text-[#0066cc] active:scale-95"
+            type="button"
+            onClick={onCancel}
+          >
+            취소
+          </button>
+          <button
+            className="h-12 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8]"
+            type="button"
+            disabled={!canSubmit || isSubmitting}
+            onClick={handleSubmit}
+          >
+            {isSubmitting ? "만드는 중" : "월드컵 만들기"}
+          </button>
+        </div>
       </div>
     </section>
   );
