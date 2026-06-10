@@ -64,6 +64,7 @@ type WorldcupAppProps = {
   initialRoomCode?: string;
 };
 type HomeSortMode = "popular" | "latest";
+type LegalDocumentKey = "terms" | "privacy" | "content" | "report";
 type VoteStamp = {
   avatar: string;
   memberId: number;
@@ -76,6 +77,171 @@ type VoteStamp = {
 };
 type TiePhase = "idle" | "spinning" | "decided" | "revealed";
 const validRoundSizes = [8, 16, 32, 64, 128];
+const legalDocuments: Record<
+  LegalDocumentKey,
+  {
+    title: string;
+    effectiveDate: string;
+    sections: Array<{ body: string[]; heading: string }>;
+  }
+> = {
+  terms: {
+    title: "이용약관",
+    effectiveDate: "2026년 6월 10일",
+    sections: [
+      {
+        heading: "서비스의 성격",
+        body: [
+          "Worldcup Online은 이용자가 이상형 월드컵을 만들고, 참여하고, 친구와 함께 실시간으로 즐길 수 있는 콘텐츠 제작·공유 서비스입니다.",
+          "서비스에 표시되는 외부 출처의 이미지, 텍스트, 상표, 인물명, 작품명 등은 각 원저작자와 권리자의 정책 및 권리를 따릅니다.",
+        ],
+      },
+      {
+        heading: "이용자의 의무",
+        body: [
+          "이용자는 저작권, 초상권, 상표권, 명예권, 개인정보 등 타인의 권리를 침해하는 콘텐츠를 등록하거나 공유해서는 안 됩니다.",
+          "타인을 사칭하거나, 비방·괴롭힘·혐오 표현·불법 정보·음란물·스팸성 콘텐츠를 게시하는 행위는 금지됩니다.",
+        ],
+      },
+      {
+        heading: "콘텐츠 권리와 사용 범위",
+        body: [
+          "이용자가 직접 등록한 콘텐츠의 권리와 책임은 해당 이용자에게 있습니다.",
+          "이용자는 서비스 운영, 저장, 노출, 공유, 검색, 통계, 신고 처리, 홍보에 필요한 범위에서 운영자에게 비독점적 사용 권한을 부여합니다.",
+          "운영자는 이용자의 동의 없이 이용자 콘텐츠 자체를 제3자에게 판매하거나 양도하지 않습니다.",
+        ],
+      },
+      {
+        heading: "게시물 조치",
+        body: [
+          "운영자는 약관 또는 운영정책 위반이 의심되는 콘텐츠에 대해 사전 통지 없이 비공개, 삭제, 노출 제한, 이용 제한 조치를 할 수 있습니다.",
+          "권리침해 신고가 접수된 콘텐츠는 사실 확인 전이라도 임시 비공개 처리될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "면책",
+        body: [
+          "운영자는 이용자 간 또는 이용자와 제3자 사이에서 발생한 분쟁에 원칙적으로 개입할 의무가 없습니다.",
+          "다만 운영자가 권리침해나 금지행위를 인지한 경우, 합리적인 범위에서 필요한 조치를 취합니다.",
+        ],
+      },
+    ],
+  },
+  privacy: {
+    title: "개인정보처리방침",
+    effectiveDate: "2026년 6월 10일",
+    sections: [
+      {
+        heading: "수집하는 정보",
+        body: [
+          "회원 로그인 시 이메일, 닉네임, 프로필 이미지 등 인증 제공자로부터 전달받은 기본 정보를 수집할 수 있습니다.",
+          "방 생성, 채팅, 투표, 월드컵 제작 과정에서 닉네임, 프로필, 작성한 텍스트, 업로드 이미지, 이용 기록이 저장될 수 있습니다.",
+          "서비스 안정성과 부정 이용 방지를 위해 IP 주소, 접속 로그, 기기·브라우저 정보, 쿠키가 자동 수집될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "이용 목적",
+        body: [
+          "수집한 정보는 회원 식별, 월드컵 제작·참여, 실시간 방 운영, 채팅, 랭킹, 고객 문의, 신고 처리, 서비스 개선 및 보안 유지에 사용합니다.",
+          "개인을 식별할 수 있는 정보는 별도 동의나 법령상 근거 없이 목적 외로 사용하지 않습니다.",
+        ],
+      },
+      {
+        heading: "보관과 삭제",
+        body: [
+          "회원 정보는 회원 탈퇴 또는 수집 목적 달성 시 지체 없이 삭제합니다.",
+          "법령상 보관 의무가 있거나 부정 이용 대응에 필요한 기록은 필요한 기간 동안 분리 보관할 수 있습니다.",
+          "이용자가 만든 공개 콘텐츠는 삭제 요청, 신고 처리, 서비스 운영 정책에 따라 삭제 또는 비공개 처리될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "제3자 제공 및 외부 서비스",
+        body: [
+          "운영자는 원칙적으로 이용자의 개인정보를 제3자에게 제공하지 않습니다.",
+          "로그인, 이미지 저장, 분석, 광고 등 외부 서비스를 사용할 경우 해당 서비스의 정책이 함께 적용될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "이용자의 권리",
+        body: [
+          "이용자는 자신의 개인정보 열람, 수정, 삭제, 처리 정지를 요청할 수 있습니다.",
+          "개인정보와 관련한 문의는 운영자에게 접수할 수 있으며, 운영자는 합리적인 범위에서 순차적으로 처리합니다.",
+        ],
+      },
+    ],
+  },
+  content: {
+    title: "콘텐츠 운영정책",
+    effectiveDate: "2026년 6월 10일",
+    sections: [
+      {
+        heading: "기본 원칙",
+        body: [
+          "Worldcup Online은 재미있는 취향 공유를 위한 서비스이며, 타인의 권리와 안전을 해치지 않는 콘텐츠를 지향합니다.",
+          "음식, 장소, 사물 등 일반 콘텐츠는 권리 문제가 없는 이미지 사용을 권장합니다.",
+          "인물 콘텐츠는 저작권뿐 아니라 초상권, 퍼블리시티권, 명예훼손 이슈가 함께 발생할 수 있으므로 특히 신중하게 등록해야 합니다.",
+        ],
+      },
+      {
+        heading: "금지 콘텐츠",
+        body: [
+          "저작권자 허락 없이 복제·캡처·편집한 사진, 영상, 움짤, 방송 클립 등 권리침해 가능성이 높은 콘텐츠는 제한될 수 있습니다.",
+          "특정 인물에 대한 모욕, 성적 대상화, 허위사실, 사생활 침해, 스토킹, 악의적 비교를 유도하는 콘텐츠는 금지됩니다.",
+          "불법 정보, 혐오 표현, 음란물, 잔혹물, 개인정보 노출, 스팸성 홍보 콘텐츠는 삭제될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "운영 조치",
+        body: [
+          "운영자는 신고, 모니터링, 권리자 요청, 서비스 안정성 판단에 따라 콘텐츠를 비공개, 삭제, 수정 요청, 검색 제외, 이용 제한 처리할 수 있습니다.",
+          "반복적으로 문제가 되는 콘텐츠를 등록하는 이용자는 일시 또는 영구 제한될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "출처와 대체 이미지",
+        body: [
+          "이미지를 등록할 때는 가능한 한 직접 촬영, 직접 제작, 라이선스가 확인된 이미지, 사용 허락을 받은 이미지를 사용해야 합니다.",
+          "권리 확인이 어려운 인물사진은 등록하지 않거나, 텍스트·일러스트·권리 문제가 없는 대체 이미지를 사용하는 것을 권장합니다.",
+        ],
+      },
+    ],
+  },
+  report: {
+    title: "권리침해 신고안내",
+    effectiveDate: "2026년 6월 10일",
+    sections: [
+      {
+        heading: "신고 대상",
+        body: [
+          "저작권, 초상권, 상표권, 개인정보, 명예훼손 등 권리침해가 의심되는 월드컵, 후보 이미지, 댓글, 채팅은 신고할 수 있습니다.",
+          "권리자 본인, 권리자의 대리인, 피해를 입은 당사자는 삭제 또는 비공개 조치를 요청할 수 있습니다.",
+        ],
+      },
+      {
+        heading: "신고 시 필요한 정보",
+        body: [
+          "문제가 되는 콘텐츠의 URL 또는 위치, 침해가 의심되는 권리의 종류, 권리자임을 확인할 수 있는 정보, 연락 가능한 이메일을 함께 보내 주세요.",
+          "대리인이 신고하는 경우 권리자로부터 위임받았음을 확인할 수 있는 자료가 필요할 수 있습니다.",
+        ],
+      },
+      {
+        heading: "처리 절차",
+        body: [
+          "신고가 접수되면 운영자는 내용을 검토하고, 필요 시 콘텐츠를 임시 비공개 처리합니다.",
+          "신고 내용이 타당하다고 판단되면 해당 콘텐츠를 삭제하거나 노출을 제한합니다.",
+          "신고 내용이 불명확한 경우 추가 자료를 요청할 수 있으며, 허위 신고나 악의적 신고는 제한될 수 있습니다.",
+        ],
+      },
+      {
+        heading: "문의",
+        body: [
+          "정식 신고 기능이 준비되기 전까지 권리침해 신고는 운영자 이메일 aass6863@naver.com 또는 서비스 내 문의 채널을 통해 접수하는 것을 원칙으로 합니다.",
+          "신고 접수 후 운영자는 필요한 경우 추가 자료를 요청할 수 있으며, 검토 결과에 따라 콘텐츠 비공개 또는 삭제 조치를 진행합니다.",
+        ],
+      },
+    ],
+  },
+};
 
 function getAuthProfile(user: AuthUser): Pick<Player, "name" | "avatar"> {
   return {
@@ -121,6 +287,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [tieBreakerMemberId, setTieBreakerMemberId] = useState<number | null>(null);
   const [tiePhase, setTiePhase] = useState<TiePhase>("idle");
   const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
+  const [openLegalDocument, setOpenLegalDocument] = useState<LegalDocumentKey | null>(null);
   const [shareToastMessage, setShareToastMessage] = useState<string | null>(null);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tieDecisionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -627,10 +794,21 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         )}
         {view === "ranking" && <RankingView game={selectedGame} onJoin={() => handleGameJoin(selectedGame.id)} />}
 
+        {view !== "play" && view !== "lobby" && (
+          <LegalFooter onOpenLegalDocument={setOpenLegalDocument} />
+        )}
+
         {showLoginRequiredModal && (
           <LoginRequiredModal
             onCancel={() => setShowLoginRequiredModal(false)}
             onConfirm={handleLogin}
+          />
+        )}
+
+        {openLegalDocument && (
+          <LegalModal
+            document={legalDocuments[openLegalDocument]}
+            onClose={() => setOpenLegalDocument(null)}
           />
         )}
 
@@ -1025,6 +1203,133 @@ function KakaoSymbol({ className }: { className?: string }) {
         fill="currentColor"
       />
     </svg>
+  );
+}
+
+function LegalFooter({
+  onOpenLegalDocument,
+}: {
+  onOpenLegalDocument: (documentKey: LegalDocumentKey) => void;
+}) {
+  const legalLinks: Array<{ key: LegalDocumentKey; label: string }> = [
+    { key: "terms", label: "이용약관" },
+    { key: "privacy", label: "개인정보처리방침" },
+    { key: "content", label: "콘텐츠 운영정책" },
+    { key: "report", label: "권리침해 신고안내" },
+  ];
+
+  return (
+    <footer className="border-t border-black/5 bg-[#f5f5f7] px-5 py-12 text-[#333333] md:px-8 md:py-16">
+      <div className="mx-auto max-w-[1180px]">
+        <div className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:gap-12">
+          <div>
+            <p className="text-[14px] font-semibold leading-[1.29] tracking-[-0.224px]">
+              Worldcup Online
+            </p>
+            <p className="mt-3 max-w-[560px] text-[12px] leading-[1.55] tracking-[-0.12px] text-[#7a7a7a]">
+              친구와 함께 취향을 고르고, 직접 만든 월드컵을 공유하는 온라인 이상형 월드컵 서비스입니다.
+              이용자가 등록한 콘텐츠는 각 권리자의 권리를 존중해야 하며, 신고 접수 시 운영정책에 따라 조치될 수 있습니다.
+            </p>
+          </div>
+
+          <nav aria-label="약관" className="grid gap-1 text-left md:justify-self-end">
+            <p className="text-[14px] font-semibold leading-[1.29] tracking-[-0.224px]">
+              약관 및 정책
+            </p>
+            <div className="mt-1 grid gap-0.5">
+              {legalLinks.map((link) => (
+                <button
+                  key={link.key}
+                  className="w-fit text-[17px] leading-[2.1] tracking-[-0.12px] text-[#0066cc] active:scale-[0.98]"
+                  type="button"
+                  onClick={() => onOpenLegalDocument(link.key)}
+                >
+                  {link.label}
+                </button>
+              ))}
+            </div>
+          </nav>
+        </div>
+
+        <div className="mt-10 border-t border-black/10 pt-5 text-[12px] leading-[1.45] tracking-[-0.12px] text-[#7a7a7a] md:flex md:items-center md:justify-between md:gap-4">
+          <p>© 2026 Worldcup Online. All rights reserved.</p>
+          <p className="mt-2 md:mt-0">권리침해 문의: aass6863@naver.com</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function LegalModal({
+  document,
+  onClose,
+}: {
+  document: (typeof legalDocuments)[LegalDocumentKey];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-0 backdrop-blur-sm md:items-center md:px-6">
+      <section
+        aria-labelledby="legal-modal-title"
+        aria-modal="true"
+        className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[18px] bg-white text-[#1d1d1f] md:max-w-[720px] md:rounded-[18px]"
+        role="dialog"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[#f0f0f0] px-5 py-5 md:px-7">
+          <div>
+            <p className="text-[12px] leading-none tracking-[-0.12px] text-[#7a7a7a]">
+              시행일 {document.effectiveDate}
+            </p>
+            <h2
+              className="mt-2 text-[24px] font-semibold leading-[1.16] tracking-[-0.224px] md:text-[28px]"
+              id="legal-modal-title"
+            >
+              {document.title}
+            </h2>
+          </div>
+          <button
+            aria-label="닫기"
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[#333333] active:scale-95"
+            type="button"
+            onClick={onClose}
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-5 md:px-7 md:py-6">
+          <p className="rounded-[11px] bg-[#f5f5f7] px-4 py-3 text-[13px] leading-[1.5] tracking-[-0.12px] text-[#7a7a7a]">
+            이 문서는 서비스 운영을 위한 기본 초안입니다. 정식 출시 전 실제 운영자 정보, 문의 이메일,
+            신고 처리 담당자 정보를 연결하고 필요한 경우 법률 검토를 거쳐 주세요.
+          </p>
+
+          <div className="mt-6 grid gap-7">
+            {document.sections.map((section) => (
+              <section key={section.heading}>
+                <h3 className="text-[17px] font-semibold leading-[1.24] tracking-[-0.374px]">
+                  {section.heading}
+                </h3>
+                <div className="mt-2 grid gap-2 text-[15px] leading-[1.55] tracking-[-0.224px] text-[#333333]">
+                  {section.body.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-[#f0f0f0] px-5 py-4 md:px-7">
+          <button
+            className="h-11 w-full rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95"
+            type="button"
+            onClick={onClose}
+          >
+            확인
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 
