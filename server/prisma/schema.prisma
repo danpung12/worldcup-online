@@ -91,6 +91,7 @@ model RoomMember {
   user_id Int?
   user    User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  tie_count Int @default(0)
 
   vote WorldcupVote[]
 

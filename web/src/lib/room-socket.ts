@@ -44,6 +44,8 @@ type GameUpdateResponse =
   | {
       status: "tie";
       match: MatchResponse;
+      tieBreakerMemberId?: number;
+      tieMembers?: number;
     }
   | {
       status: "nextMatch";

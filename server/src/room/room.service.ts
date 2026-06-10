@@ -9,7 +9,6 @@ import { PrismaService } from 'prisma/prisma.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { v4 } from 'uuid';
 
-
 @Injectable()
 export class RoomService {
   constructor(private readonly prisma: PrismaService) {}
@@ -176,12 +175,45 @@ export class RoomService {
     });
   }
 
+  private tieByMatch = new Map<number, number>();
+
+  private setTie(matchId: number, memberId: number) {
+    this.tieByMatch.set(matchId, memberId);
+  }
+
+  private getTie(matchId: number) {
+    return this.tieByMatch.get(matchId);
+  }
+
+  private clearTie(matchId: number) {
+    this.tieByMatch.delete(matchId);
+  }
+
   // 현재 매치에 투표 저장
   // 전원 투표 완료 시 승자 결정
   // 동점이면 투표 초기화 후 재투표
   // 승자 결정 후 다음 매치 또는 다음 라운드 반환
   async vote(roomCode: string, selectItemId: number, memberId: number) {
     const match = await this.getCurrentMatch(roomCode);
+
+    const tieMembers = this.getTie(match.id);
+
+    if (tieMembers) {
+      if (tieMembers !== memberId) {
+        throw new ForbiddenException('이번 투표자가 아닙니다.');
+      }
+      await this.prisma.worldcupMatch.update({
+        where: {
+          id: match.id,
+        },
+        data: {
+          winner_id: selectItemId,
+        },
+      });
+
+      this.clearTie(match.id);
+      return this.returnNextMatch(roomCode, match, { memberId, selectItemId });
+    }
 
     if (selectItemId !== match.item_a_id && selectItemId !== match.item_b_id) {
       throw new BadRequestException('현재 매치의 후보에만 투표할 수 있습니다.');
@@ -237,13 +269,25 @@ export class RoomService {
             match_id: match.id,
           },
         });
+        const tieMembers = await this.pickRandomMember(match.room_id);
+        this.setTie(match.id, tieMembers);
+
         return {
           match,
           status: 'tie' as const,
+          tieMembers,
         };
       }
     }
 
+    return this.returnNextMatch(roomCode, match, { memberId, selectItemId });
+  }
+
+  private async returnNextMatch(
+    roomCode: string,
+    match,
+    vote: { memberId; selectItemId },
+  ) {
     const allMatch = await this.getRoundMatches(match.room_id, match.round_id);
     if (allMatch.every((match) => match.winner_id !== null)) {
       return this.createNextRound(roomCode, match);
@@ -252,7 +296,7 @@ export class RoomService {
     return {
       status: 'nextMatch' as const,
       match: await this.getCurrentMatch(roomCode),
-      vote: { memberId, selectItemId },
+      vote,
     };
   }
 
@@ -348,5 +392,42 @@ export class RoomService {
     const updateRoom = await this.getRoomByCode(roomCode);
 
     return { room: updateRoom, member };
+  }
+
+  private async pickRandomMember(roomId: number) {
+    const members = await this.prisma.roomMember.findMany({
+      where: {
+        room_id: roomId,
+      },
+      select: {
+        id: true,
+        tie_count: true,
+      },
+    });
+
+    if (!members) {
+      throw new BadRequestException('참여자가 없습니다.');
+    }
+    const minTieCount = Math.min(...members.map((member) => member.tie_count));
+
+    const minMember = members.filter(
+      (member) => member.tie_count === minTieCount,
+    );
+
+    const randomCount = Math.floor(Math.random() * minMember.length);
+    const randomMember = minMember[randomCount];
+
+    await this.prisma.roomMember.update({
+      where: {
+        id: randomMember.id,
+      },
+      data: {
+        tie_count: {
+          increment: 1,
+        },
+      },
+    });
+
+    return randomMember.id;
   }
 }

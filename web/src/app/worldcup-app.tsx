@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BarChart3,
@@ -74,6 +74,7 @@ type VoteStamp = {
   x: number;
   y: number;
 };
+type TiePhase = "idle" | "spinning" | "decided" | "revealed";
 const validRoundSizes = [8, 16, 32, 64, 128];
 
 function getAuthProfile(user: AuthUser): Pick<Player, "name" | "avatar"> {
@@ -117,9 +118,12 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
+  const [tieBreakerMemberId, setTieBreakerMemberId] = useState<number | null>(null);
+  const [tiePhase, setTiePhase] = useState<TiePhase>("idle");
   const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
   const [shareToastMessage, setShareToastMessage] = useState<string | null>(null);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tieDecisionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedGame =
     games.find((game) => game.id === selectedGameId) ?? games[0] ?? mockGames[0];
@@ -152,6 +156,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       if (nextMatchTimerRef.current) {
         clearTimeout(nextMatchTimerRef.current);
       }
+      if (tieDecisionTimerRef.current) {
+        clearTimeout(tieDecisionTimerRef.current);
+      }
       if (shareToastTimerRef.current) {
         clearTimeout(shareToastTimerRef.current);
       }
@@ -178,6 +185,19 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       nextMatchTimerRef.current = null;
     }
   }, []);
+
+  const clearTieDecisionTimer = useCallback(() => {
+    if (tieDecisionTimerRef.current) {
+      clearTimeout(tieDecisionTimerRef.current);
+      tieDecisionTimerRef.current = null;
+    }
+  }, []);
+
+  const resetTieBreaker = useCallback(() => {
+    clearTieDecisionTimer();
+    setTieBreakerMemberId(null);
+    setTiePhase("idle");
+  }, [clearTieDecisionTimer]);
 
   const addVoteStamp = useCallback(
     (vote: { memberId: number; selectItemId: number }) => {
@@ -215,17 +235,20 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
       if (isMatchResponse(update)) {
         clearNextMatchTimer();
+        resetTieBreaker();
         setCurrentMatch(update);
         setWinnerId(null);
         setGameNotice(null);
         setSelectedItemId(null);
         setVoteStamps([]);
+        setGameNotice(null);
         setView("play");
         return;
       }
 
       if ("finished" in update && update.finished) {
         clearNextMatchTimer();
+        resetTieBreaker();
         setWinnerId(update.winnerId);
         setSelectedItemId(null);
         setGameNotice("월드컵이 종료되었습니다.");
@@ -252,15 +275,30 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
       if (update.status === "tie") {
         clearNextMatchTimer();
+        clearTieDecisionTimer();
+        const nextTieBreakerMemberId = update.tieBreakerMemberId ?? update.tieMembers ?? null;
         setCurrentMatch(update.match);
+        setTieBreakerMemberId(nextTieBreakerMemberId);
+        setTiePhase(nextTieBreakerMemberId ? "spinning" : "decided");
         setSelectedItemId(null);
         setVoteStamps([]);
+        setGameNotice(null);
+        if (nextTieBreakerMemberId) {
+          tieDecisionTimerRef.current = setTimeout(() => {
+            setTiePhase("decided");
+            tieDecisionTimerRef.current = setTimeout(() => {
+              setTiePhase("revealed");
+              tieDecisionTimerRef.current = null;
+            }, 1500);
+          }, 1800);
+        }
         setGameNotice("동점입니다. 같은 매치를 다시 투표해주세요.");
         setView("play");
         return;
       }
 
       if (update.status === "nextMatch") {
+        resetTieBreaker();
         if (!update.vote) {
           clearNextMatchTimer();
           setCurrentMatch(update.match);
@@ -292,7 +330,14 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         }, 1000);
       }
     },
-    [addVoteStamp, clearNextMatchTimer, currentMember?.memberId, setView],
+    [
+      addVoteStamp,
+      clearNextMatchTimer,
+      clearTieDecisionTimer,
+      currentMember?.memberId,
+      resetTieBreaker,
+      setView,
+    ],
   );
 
   useEffect(() => {
@@ -323,6 +368,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   function handleStartGame(roundSize?: number) {
     clearNextMatchTimer();
+    resetTieBreaker();
     setGameNotice(null);
     setVoteStamps([]);
     setSelectedItemId(null);
@@ -333,6 +379,13 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   async function handleVote(selectItemId: number) {
     if (!currentMember) {
+      return;
+    }
+
+    if (
+      tieBreakerMemberId !== null &&
+      (tiePhase !== "decided" || tieBreakerMemberId !== currentMember.memberId)
+    ) {
       return;
     }
 
@@ -365,6 +418,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   function handleBackToHome() {
     clearNextMatchTimer();
+    resetTieBreaker();
     setView("home");
     setCurrentMatch(null);
     setWinnerId(null);
@@ -558,6 +612,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
             onVote={handleVote}
             players={players}
             selectedItemId={selectedItemId}
+            currentMemberId={currentMember?.memberId ?? null}
+            tieBreakerMemberId={tieBreakerMemberId}
+            tiePhase={tiePhase}
             voteStamps={voteStamps}
           />
         )}
@@ -2236,6 +2293,7 @@ function LobbyView({
 
 function PlayView({
   activeRoundSize,
+  currentMemberId,
   isVoting,
   messages,
   match,
@@ -2244,9 +2302,12 @@ function PlayView({
   onVote,
   players,
   selectedItemId,
+  tieBreakerMemberId,
+  tiePhase,
   voteStamps,
 }: {
   activeRoundSize: number;
+  currentMemberId: number | null;
   isVoting: boolean;
   messages: ChatResponse[];
   match: MatchResponse;
@@ -2255,9 +2316,16 @@ function PlayView({
   onVote: (selectItemId: number) => void;
   players: Player[];
   selectedItemId: number | null;
+  tieBreakerMemberId: number | null;
+  tiePhase: TiePhase;
   voteStamps: VoteStamp[];
 }) {
   const roundLabel = getMatchRoundLabel(match, activeRoundSize);
+  const isTieActive = tieBreakerMemberId !== null;
+  const isTieSpinning = tiePhase === "spinning";
+  const isTieBreaker = tieBreakerMemberId === currentMemberId;
+  const isTieVoteLocked = isTieActive && (isTieSpinning || !isTieBreaker);
+  const voteDisabled = isVoting || isTieVoteLocked;
   const isWaitingForOthers = selectedItemId !== null && !isVoting;
   const [waitingDotCount, setWaitingDotCount] = useState(1);
 
@@ -2286,28 +2354,36 @@ function PlayView({
             </span>
           )}
         </div>
-        {notice && !isWaitingForOthers && (
+        {notice && !isWaitingForOthers && !isTieActive && (
           <p className="mt-2 rounded-2xl bg-[#f5f5f7] px-3 py-2 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#0066cc]">
             {notice}
           </p>
         )}
       </div>
 
-      <div className="grid shrink-0 grid-cols-2 items-stretch gap-px bg-black md:min-h-0 md:rounded-[18px] md:border md:border-black md:h-full md:overflow-hidden">
+      <div className="relative grid shrink-0 grid-cols-2 items-stretch gap-px bg-black md:min-h-0 md:rounded-[18px] md:border md:border-black md:h-full md:overflow-hidden">
         <VoteCard
-          disabled={isVoting}
+          disabled={voteDisabled}
           item={match.item_a}
           onSelect={() => onVote(match.item_a_id)}
           selected={selectedItemId === match.item_a_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
         />
         <VoteCard
-          disabled={isVoting}
+          disabled={voteDisabled}
           item={match.item_b}
           onSelect={() => onVote(match.item_b_id)}
           selected={selectedItemId === match.item_b_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_b_id)}
         />
+        {isTieActive && (
+          <TieBreakerOverlay
+            currentMemberId={currentMemberId}
+            phase={tiePhase}
+            players={players}
+            tieBreakerMemberId={tieBreakerMemberId}
+          />
+        )}
       </div>
 
       <div className="min-h-0 flex-1 px-3 pt-3 md:px-0 md:pt-0">
@@ -2373,6 +2449,125 @@ function VoteCard({
         >
           {selected ? "선택함" : "선택"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function TieBreakerOverlay({
+  currentMemberId,
+  phase,
+  players,
+  tieBreakerMemberId,
+}: {
+  currentMemberId: number | null;
+  phase: TiePhase;
+  players: Player[];
+  tieBreakerMemberId: number;
+}) {
+  const [rouletteIndex, setRouletteIndex] = useState(0);
+  const roulettePlayers = useMemo(
+    () =>
+      players.length > 0
+        ? players
+        : [
+            {
+              id: tieBreakerMemberId,
+              name: "참가자",
+              avatar: getAvatarForName(String(tieBreakerMemberId)),
+            },
+          ],
+    [players, tieBreakerMemberId],
+  );
+  const targetPlayer =
+    roulettePlayers.find((player) => player.id === tieBreakerMemberId) ??
+    roulettePlayers[0];
+
+  useEffect(() => {
+    if (phase !== "spinning") {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setRouletteIndex((index) => (index + 1) % roulettePlayers.length);
+    }, 90);
+
+    return () => window.clearInterval(intervalId);
+  }, [phase, roulettePlayers, tieBreakerMemberId]);
+
+  const displayPlayer =
+    phase !== "spinning"
+      ? targetPlayer
+      : roulettePlayers[rouletteIndex % roulettePlayers.length];
+  const isCurrentUserTurn =
+    phase !== "spinning" && tieBreakerMemberId === currentMemberId;
+  const isCompactBannerVisible = phase === "revealed" || isCurrentUserTurn;
+  const headline = phase === "spinning" ? "동점입니다!" : `${displayPlayer.name}님`;
+  const description =
+    phase === "spinning"
+      ? "결정권자를 고르는 중입니다"
+      : isCurrentUserTurn
+        ? "결과를 정해주세요!"
+        : `${displayPlayer.name}님이 결과를 정하고 있어요`;
+
+  if (isCompactBannerVisible) {
+    const compactDescription = isCurrentUserTurn
+      ? "아래 두 후보 중 하나를 선택하세요."
+      : "후보를 보며 채팅으로 의견을 나눠보세요.";
+
+    return (
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-40 flex justify-center md:top-5">
+        <div className="tie-winner-pop flex w-full max-w-[420px] items-center gap-3 rounded-[18px] border border-white/15 bg-black/72 px-4 py-3 text-left text-white backdrop-blur-md">
+          <Image
+            alt={`${displayPlayer.name} 아바타`}
+            className="size-12 shrink-0 rounded-full border border-white/20 bg-white object-cover"
+            height={48}
+            src={displayPlayer.avatar}
+            unoptimized
+            width={48}
+          />
+          <div className="min-w-0">
+            <p className="truncate text-[17px] font-semibold leading-[1.24] tracking-[-0.374px]">
+              {isCurrentUserTurn
+                ? `${displayPlayer.name}님, 결과를 정해주세요!`
+                : `${displayPlayer.name}님이 결과를 정하고 있어요`}
+            </p>
+            <p className="mt-1 text-[13px] font-normal leading-[1.35] tracking-[-0.12px] text-[#cccccc]">
+              {compactDescription}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="absolute inset-0 z-40 grid place-items-center bg-black/72 px-4 text-center text-white backdrop-blur-md">
+      <div className="w-full max-w-[360px]">
+        <p className="text-[34px] font-semibold leading-[1.07] tracking-[-0.28px] md:text-[40px]">
+          {headline}
+        </p>
+        <div
+          key={`${phase}-${displayPlayer.id}-${rouletteIndex}`}
+          className={`mx-auto mt-6 grid size-[118px] place-items-center rounded-full border border-white/20 bg-white shadow-[rgba(0,0,0,0.22)_3px_5px_30px_0] md:size-[140px] ${
+            phase === "decided" ? "tie-winner-pop" : "tie-slot-pop"
+          }`}
+        >
+          <Image
+            alt={`${displayPlayer.name} 아바타`}
+            className="size-[104px] rounded-full object-cover md:size-[124px]"
+            height={124}
+            src={displayPlayer.avatar}
+            unoptimized
+            width={124}
+          />
+        </div>
+        <p className="mt-4 truncate text-[21px] font-semibold leading-[1.19] tracking-[-0.12px]">
+          {displayPlayer.name}
+        </p>
+        <p className="mx-auto mt-2 max-w-[280px] text-[17px] font-normal leading-[1.47] tracking-[-0.374px] text-[#cccccc]">
+          {description}
+        </p>
       </div>
     </div>
   );
