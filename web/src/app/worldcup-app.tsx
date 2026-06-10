@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ClipboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeft,
   BarChart3,
@@ -1219,39 +1226,38 @@ function LegalFooter({
   ];
 
   return (
-    <footer className="border-t border-black/5 bg-[#f5f5f7] px-5 py-12 text-[#333333] md:px-8 md:py-16">
+    <footer className="border-t border-black/5 bg-[#f5f5f7] px-5 py-8 text-[#333333] md:px-8 md:py-10">
       <div className="mx-auto max-w-[1180px]">
-        <div className="grid gap-8 md:grid-cols-[1.2fr_1fr] md:gap-12">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-10">
           <div>
             <p className="text-[14px] font-semibold leading-[1.29] tracking-[-0.224px]">
               Worldcup Online
             </p>
-            <p className="mt-3 max-w-[560px] text-[12px] leading-[1.55] tracking-[-0.12px] text-[#7a7a7a]">
+            <p className="mt-2 max-w-[620px] text-[12px] leading-[1.55] tracking-[-0.12px] text-[#7a7a7a]">
               친구와 함께 취향을 고르고, 직접 만든 월드컵을 공유하는 온라인 이상형 월드컵 서비스입니다.
               이용자가 등록한 콘텐츠는 각 권리자의 권리를 존중해야 하며, 신고 접수 시 운영정책에 따라 조치될 수 있습니다.
             </p>
           </div>
 
-          <nav aria-label="약관" className="grid gap-1 text-left md:justify-self-end">
-            <p className="text-[14px] font-semibold leading-[1.29] tracking-[-0.224px]">
-              약관 및 정책
-            </p>
-            <div className="mt-1 grid gap-0.5">
+          <nav aria-label="약관 및 정책" className="text-left md:pt-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] leading-[1.45] tracking-[-0.12px] text-[#666666] md:justify-end">
               {legalLinks.map((link) => (
-                <button
-                  key={link.key}
-                  className="w-fit text-[17px] leading-[2.1] tracking-[-0.12px] text-[#0066cc] active:scale-[0.98]"
-                  type="button"
-                  onClick={() => onOpenLegalDocument(link.key)}
-                >
-                  {link.label}
-                </button>
+                <span key={link.key} className="flex items-center gap-x-2">
+                  <button
+                    className="text-[#555555] underline-offset-4 transition hover:text-[#1d1d1f] hover:underline active:scale-[0.98]"
+                    type="button"
+                    onClick={() => onOpenLegalDocument(link.key)}
+                  >
+                    {link.label}
+                  </button>
+                  {link.key !== "report" && <span className="text-[#c7c7cc]">|</span>}
+                </span>
               ))}
             </div>
           </nav>
         </div>
 
-        <div className="mt-10 border-t border-black/10 pt-5 text-[12px] leading-[1.45] tracking-[-0.12px] text-[#7a7a7a] md:flex md:items-center md:justify-between md:gap-4">
+        <div className="mt-7 border-t border-black/10 pt-4 text-[12px] leading-[1.45] tracking-[-0.12px] text-[#8a8a8e] md:flex md:items-center md:justify-between md:gap-4">
           <p>© 2026 Worldcup Online. All rights reserved.</p>
           <p className="mt-2 md:mt-0">권리침해 문의: aass6863@naver.com</p>
         </div>
@@ -1298,12 +1304,7 @@ function LegalModal({
         </div>
 
         <div className="overflow-y-auto px-5 py-5 md:px-7 md:py-6">
-          <p className="rounded-[11px] bg-[#f5f5f7] px-4 py-3 text-[13px] leading-[1.5] tracking-[-0.12px] text-[#7a7a7a]">
-            이 문서는 서비스 운영을 위한 기본 초안입니다. 정식 출시 전 실제 운영자 정보, 문의 이메일,
-            신고 처리 담당자 정보를 연결하고 필요한 경우 법률 검토를 거쳐 주세요.
-          </p>
-
-          <div className="mt-6 grid gap-7">
+          <div className="grid gap-7">
             {document.sections.map((section) => (
               <section key={section.heading}>
                 <h3 className="text-[17px] font-semibold leading-[1.24] tracking-[-0.374px]">
@@ -1919,6 +1920,29 @@ function CreateWorldcupForm({
     );
   }
 
+  function updateItemFile(id: number, file: File | null) {
+    updateItem(id, {
+      file,
+      previewUrl: file ? URL.createObjectURL(file) : null,
+    });
+  }
+
+  function handleItemPaste(id: number, event: ClipboardEvent<HTMLElement>) {
+    const file = Array.from(event.clipboardData.files).find((pastedFile) =>
+      pastedFile.type.startsWith("image/"),
+    );
+
+    if (!file) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.nativeEvent.stopImmediatePropagation();
+    setErrorMessage(null);
+    updateItemFile(id, file);
+  }
+
   async function handleSubmit() {
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -2009,7 +2033,12 @@ function CreateWorldcupForm({
 
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {items.map((item, index) => (
-              <div key={item.id} className="rounded-2xl border border-[#eeeeef] p-3">
+              <div
+                key={item.id}
+                className="rounded-2xl border border-[#eeeeef] p-3 outline-none transition focus-within:border-[#b9b9bf] focus:border-[#b9b9bf]"
+                tabIndex={0}
+                onPasteCapture={(event) => handleItemPaste(item.id, event)}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-[14px] tracking-[-0.224px]">후보 {index + 1}</strong>
                   <button
@@ -2049,10 +2078,7 @@ function CreateWorldcupForm({
                     accept="image/*"
                     onChange={(event) => {
                       const file = event.target.files?.[0] ?? null;
-                      updateItem(item.id, {
-                        file,
-                        previewUrl: file ? URL.createObjectURL(file) : null,
-                      });
+                      updateItemFile(item.id, file);
                     }}
                   />
                 </div>
