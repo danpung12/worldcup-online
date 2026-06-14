@@ -14,6 +14,14 @@ export class CreateItemDto {
   image_url!: string;
 }
 
+export class UpdateItemDto {
+  @IsString()
+  name!: string;
+
+  @IsString()
+  image_url!: string;
+}
+
 export class CreateGameDto {
   @IsString()
   title!: string;

@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WorldcupService } from './worldcup.service';
-import { CreateGameDto, CreateItemDto } from './dto/create-game.dto';
+import {
+  CreateGameDto,
+  CreateItemDto,
+  UpdateItemDto,
+} from './dto/create-game.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from 'src/auth/decorator/user.decorator';
 
@@ -77,6 +81,16 @@ export class WorldcupController {
     @GetUser('id') userId: number,
   ) {
     return this.worldcupService.createItem(gameId, dto, userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('items/:itemId')
+  updateItem(
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: UpdateItemDto,
+    @GetUser('id') userId: number,
+  ) {
+    return this.worldcupService.updateItem(itemId, dto, userId);
   }
 
   // 월드컵 후보 삭제

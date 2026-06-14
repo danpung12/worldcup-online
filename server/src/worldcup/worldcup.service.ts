@@ -4,11 +4,67 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
-import { CreateGameDto, CreateItemDto } from './dto/create-game.dto';
+import {
+  CreateGameDto,
+  CreateItemDto,
+  UpdateItemDto,
+} from './dto/create-game.dto';
 
 @Injectable()
 export class WorldcupService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private async withAutoThumbnails<
+    T extends {
+      id: number;
+      items?: { id: number; image_url: string }[];
+      thumbnail?: string | null;
+    },
+  >(games: T[]) {
+    if (games.length === 0) {
+      return games;
+    }
+
+    const gameIds = games.map((game) => game.id);
+    const votes = await this.prisma.worldcupVote.findMany({
+      where: {
+        select_item: {
+          game_id: {
+            in: gameIds,
+          },
+        },
+      },
+      select: {
+        select_item: {
+          select: {
+            game_id: true,
+            id: true,
+            image_url: true,
+          },
+        },
+      },
+    });
+    const voteCounts = new Map<number, number>();
+    const topItems = new Map<number, { count: number; imageUrl: string }>();
+
+    for (const vote of votes) {
+      const item = vote.select_item;
+      const count = (voteCounts.get(item.id) ?? 0) + 1;
+      voteCounts.set(item.id, count);
+
+      const current = topItems.get(item.game_id);
+
+      if (!current || count > current.count) {
+        topItems.set(item.game_id, { count, imageUrl: item.image_url });
+      }
+    }
+
+    return games.map((game) => ({
+      ...game,
+      thumbnail:
+        topItems.get(game.id)?.imageUrl ?? game.items?.[0]?.image_url ?? null,
+    }));
+  }
 
   private async gameOwner(gameId: number, userId: number) {
     const game = await this.prisma.worldcupGame.findUnique({
@@ -25,12 +81,18 @@ export class WorldcupService {
   }
 
   async createGame(dto: CreateGameDto, items: CreateItemDto[], userId: number) {
-    return this.prisma.worldcupGame.create({
+    const game = await this.prisma.worldcupGame.create({
       data: { ...dto, creator_id: userId, items: { create: items } },
       include: {
-        items: true,
+        items: {
+          orderBy: {
+            id: 'asc',
+          },
+        },
       },
     });
+
+    return (await this.withAutoThumbnails([game]))[0];
   }
 
   async deleteGame(gameId: number, userId: number) {
@@ -57,30 +119,61 @@ export class WorldcupService {
   async getGameById(gameId: number) {
     const game = await this.prisma.worldcupGame.findUnique({
       where: { id: gameId },
-      include: { items: true },
+      include: {
+        items: {
+          orderBy: {
+            id: 'asc',
+          },
+        },
+      },
     });
 
     if (!game) {
       throw new NotFoundException('월드컵을 찾을 수 없습니다.');
     }
-    return game;
+    return (await this.withAutoThumbnails([game]))[0];
   }
 
   async getGames() {
-    return this.prisma.worldcupGame.findMany({
+    const games = await this.prisma.worldcupGame.findMany({
       orderBy: {
         created_at: 'desc',
       },
       include: {
-        items: true,
+        items: {
+          orderBy: {
+            id: 'asc',
+          },
+        },
       },
     });
+
+    return this.withAutoThumbnails(games);
   }
 
   async createItem(gameId: number, dto: CreateItemDto, userId: number) {
     await this.gameOwner(gameId, userId);
     return this.prisma.worldcupItem.create({
       data: { ...dto, game_id: gameId },
+    });
+  }
+
+  async updateItem(itemId: number, dto: UpdateItemDto, userId: number) {
+    const item = await this.prisma.worldcupItem.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!item) {
+      throw new NotFoundException('?꾨낫瑜?李얠쓣 ???놁뒿?덈떎.');
+    }
+
+    await this.gameOwner(item.game_id, userId);
+
+    return this.prisma.worldcupItem.update({
+      where: {
+        id: itemId,
+      },
+      data: dto,
     });
   }
 
@@ -102,11 +195,20 @@ export class WorldcupService {
   }
 
   async getGamesByCreator(userId: number) {
-    return this.prisma.worldcupGame.findMany({
+    const games = await this.prisma.worldcupGame.findMany({
       where: {
         creator_id: userId,
       },
+      include: {
+        items: {
+          orderBy: {
+            id: 'asc',
+          },
+        },
+      },
       orderBy: { updated_at: 'desc' },
     });
+
+    return this.withAutoThumbnails(games);
   }
 }

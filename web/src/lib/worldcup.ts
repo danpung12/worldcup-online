@@ -12,13 +12,13 @@ export type WorldcupGame = {
   ranking: Array<{ imageUrl: string; name: string; votes: number }>;
 };
 
-type BackendWorldcupItem = {
+export type BackendWorldcupItem = {
   id: number;
   name: string;
   image_url: string;
 };
 
-type BackendWorldcupGame = {
+export type BackendWorldcupGame = {
   id: number;
   title: string;
   description: string | null;
@@ -60,6 +60,7 @@ export type CreateWorldcupGameInput = {
 
 export const queryKeys = {
   games: ["worldcup", "games"] as const,
+  gameDetail: (gameId: number) => ["worldcup", "game", gameId] as const,
   myGames: ["worldcup", "my-games"] as const,
 };
 
@@ -179,6 +180,21 @@ export async function fetchMyWorldcupGames() {
   return response.json() as Promise<MyWorldcupGame[]>;
 }
 
+export async function fetchWorldcupGameDetail(gameId: number) {
+  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("월드컵 상세 정보를 불러오지 못했습니다.");
+  }
+
+  return response.json() as Promise<BackendWorldcupGame>;
+}
+
 export async function uploadImageFile(file: File) {
   const presignedResponse = await fetch(`${apiBaseUrl}/upload/presigned-url`, {
     body: JSON.stringify({
@@ -247,6 +263,57 @@ export async function updateWorldcupGame(
   }
 
   return response.json() as Promise<MyWorldcupGame>;
+}
+
+export async function createWorldcupItem(
+  gameId: number,
+  input: CreateWorldcupItemInput,
+) {
+  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}/items`, {
+    body: JSON.stringify(input),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("후보를 추가하지 못했습니다.");
+  }
+
+  return response.json() as Promise<BackendWorldcupItem>;
+}
+
+export async function updateWorldcupItem(
+  itemId: number,
+  input: CreateWorldcupItemInput,
+) {
+  const response = await fetch(`${apiBaseUrl}/worldcup/items/${itemId}`, {
+    body: JSON.stringify(input),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error("후보를 수정하지 못했습니다.");
+  }
+
+  return response.json() as Promise<BackendWorldcupItem>;
+}
+
+export async function deleteWorldcupItem(itemId: number) {
+  const response = await fetch(`${apiBaseUrl}/worldcup/items/${itemId}`, {
+    credentials: "include",
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("후보를 삭제하지 못했습니다.");
+  }
 }
 
 export async function deleteWorldcupGame(gameId: number) {
