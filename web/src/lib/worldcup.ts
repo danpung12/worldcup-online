@@ -1,3 +1,5 @@
+import { apiBaseUrl, fetchWithAuthRefresh, socketBaseUrl } from "@/lib/api-client";
+
 export type WorldcupGame = {
   id: number;
   title: string;
@@ -64,15 +66,7 @@ export const queryKeys = {
   myGames: ["worldcup", "my-games"] as const,
 };
 
-const defaultApiBaseUrl =
-  process.env.NODE_ENV === "production"
-    ? "https://worldcupapi.duckdns.org"
-    : "http://localhost:4000";
-
-export const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? defaultApiBaseUrl;
-export const socketBaseUrl =
-  process.env.NEXT_PUBLIC_SOCKET_URL ?? apiBaseUrl;
+export { apiBaseUrl, socketBaseUrl };
 
 const imageUrl = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=80`;
@@ -145,7 +139,7 @@ export const mockGames: WorldcupGame[] = [
 ];
 
 export async function fetchWorldcupGames() {
-  const response = await fetch(`${apiBaseUrl}/worldcup`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup`, {
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -162,7 +156,7 @@ export async function fetchWorldcupGames() {
 }
 
 export async function fetchMyWorldcupGames() {
-  const response = await fetch(`${apiBaseUrl}/worldcup/mygame`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/mygame`, {
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -181,7 +175,7 @@ export async function fetchMyWorldcupGames() {
 }
 
 export async function fetchWorldcupGameDetail(gameId: number) {
-  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/${gameId}`, {
     credentials: "include",
     headers: {
       Accept: "application/json",
@@ -196,7 +190,7 @@ export async function fetchWorldcupGameDetail(gameId: number) {
 }
 
 export async function uploadImageFile(file: File) {
-  const presignedResponse = await fetch(`${apiBaseUrl}/upload/presigned-url`, {
+  const presignedResponse = await fetchWithAuthRefresh(`${apiBaseUrl}/upload/presigned-url`, {
     body: JSON.stringify({
       contentType: file.type,
       fileName: file.name,
@@ -229,7 +223,7 @@ export async function uploadImageFile(file: File) {
 }
 
 export async function createWorldcupGame(input: CreateWorldcupGameInput) {
-  const response = await fetch(`${apiBaseUrl}/worldcup`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup`, {
     body: JSON.stringify(input),
     credentials: "include",
     headers: {
@@ -249,7 +243,7 @@ export async function updateWorldcupGame(
   gameId: number,
   input: CreateWorldcupGameInput["game"],
 ) {
-  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/${gameId}`, {
     body: JSON.stringify({ game: input }),
     credentials: "include",
     headers: {
@@ -269,7 +263,7 @@ export async function createWorldcupItem(
   gameId: number,
   input: CreateWorldcupItemInput,
 ) {
-  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}/items`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/${gameId}/items`, {
     body: JSON.stringify(input),
     credentials: "include",
     headers: {
@@ -289,7 +283,7 @@ export async function updateWorldcupItem(
   itemId: number,
   input: CreateWorldcupItemInput,
 ) {
-  const response = await fetch(`${apiBaseUrl}/worldcup/items/${itemId}`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/items/${itemId}`, {
     body: JSON.stringify(input),
     credentials: "include",
     headers: {
@@ -306,7 +300,7 @@ export async function updateWorldcupItem(
 }
 
 export async function deleteWorldcupItem(itemId: number) {
-  const response = await fetch(`${apiBaseUrl}/worldcup/items/${itemId}`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/items/${itemId}`, {
     credentials: "include",
     method: "DELETE",
   });
@@ -317,7 +311,7 @@ export async function deleteWorldcupItem(itemId: number) {
 }
 
 export async function deleteWorldcupGame(gameId: number) {
-  const response = await fetch(`${apiBaseUrl}/worldcup/${gameId}`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/worldcup/${gameId}`, {
     credentials: "include",
     method: "DELETE",
   });

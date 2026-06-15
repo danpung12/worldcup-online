@@ -1,4 +1,4 @@
-import { apiBaseUrl } from "@/lib/worldcup";
+import { apiBaseUrl, fetchWithAuthRefresh } from "@/lib/api-client";
 
 export type AuthUser = {
   id: number;
@@ -7,7 +7,7 @@ export type AuthUser = {
 };
 
 export async function fetchAuthMe() {
-  const response = await fetch(`${apiBaseUrl}/auth/me`, {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/auth/me`, {
     credentials: "include",
     headers: {
       Accept: "application/json",

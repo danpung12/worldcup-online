@@ -4,7 +4,6 @@ import {
   Post,
   UseGuards,
   Req,
-  Body,
   Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -42,8 +41,12 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Body('token') token: string) {
-    return this.authService.kakaoRefresh(token);
+  async refresh(@Req() req, @Res({ passthrough: true }) res) {
+    const { accessToken } = await this.authService.kakaoRefresh(
+      req.cookies.refreshToken,
+    );
+
+    res.cookie('accessToken', accessToken, this.getCookieOptions());
   }
 
   @Post('logout')

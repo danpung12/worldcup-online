@@ -42,14 +42,14 @@ export class AuthService {
     };
   }
 
-  async kakaoRefresh(token: string) {
-    if (!token) {
+  async kakaoRefresh(refreshToken: string) {
+    if (!refreshToken) {
       throw new UnauthorizedException('리프레쉬 토큰이 필요함.');
     }
     let payload;
 
     try {
-      payload = await this.jwtService.verifyAsync(token, {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch {
