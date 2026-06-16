@@ -235,8 +235,6 @@ export class RoomService {
       };
     }
 
-    console.log('[vote]:', selectItemId);
-
     try {
       await this.prisma.worldcupVote.upsert({
         where: {
@@ -286,12 +284,6 @@ export class RoomService {
         };
       }
       const result = await this.decideMatchWinner(match.id);
-
-      console.log('[투표 결과]', {
-        matchId: match.id,
-        result,
-        selectItemId,
-      });
 
       if (result.status === 'tie') {
         await this.prisma.worldcupVote.deleteMany({
@@ -351,13 +343,6 @@ export class RoomService {
         match_id: matchId,
         select_item_id: match.item_b_id,
       },
-    });
-
-    console.log('[매치승자결정]:', {
-      itemAId: match.item_a_id,
-      itemBId: match.item_b_id,
-      AVoteCount,
-      BVoteCount,
     });
 
     if (AVoteCount === BVoteCount) {
@@ -421,7 +406,6 @@ export class RoomService {
 
     await this.createMatches(match.room_id, nextRoundId, winnerIds);
 
-    console.log('match:', match.round_id, 'winner:', winnerIds);
     return this.getCurrentMatch(roomCode);
   }
 
