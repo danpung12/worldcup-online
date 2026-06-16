@@ -561,6 +561,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       return;
     }
 
+    if (selectedItemId === selectItemId) {
+      return;
+    }
+
     if (
       tieBreakerMemberId !== null &&
       (tiePhase !== "decided" || tieBreakerMemberId !== currentMember.memberId)
@@ -3264,14 +3268,14 @@ function PlayView({
 
       <div className="relative grid shrink-0 grid-cols-2 items-stretch gap-px bg-black md:min-h-0 md:rounded-[18px] md:border md:border-black md:h-full md:overflow-hidden">
         <VoteCard
-          disabled={voteDisabled}
+          disabled={voteDisabled || selectedItemId === match.item_a_id}
           item={match.item_a}
           onSelect={() => onVote(match.item_a_id)}
           selected={selectedItemId === match.item_a_id}
           stamps={voteStamps.filter((stamp) => stamp.selectItemId === match.item_a_id)}
         />
         <VoteCard
-          disabled={voteDisabled}
+          disabled={voteDisabled || selectedItemId === match.item_b_id}
           item={match.item_b}
           onSelect={() => onVote(match.item_b_id)}
           selected={selectedItemId === match.item_b_id}

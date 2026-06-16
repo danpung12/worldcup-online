@@ -194,7 +194,6 @@ export class RoomService {
   // 동점이면 투표 초기화 후 재투표
   // 승자 결정 후 다음 매치 또는 다음 라운드 반환
   async vote(roomCode: string, selectItemId: number, memberId: number) {
-    console.log('[vote]:', selectItemId);
     const match = await this.getCurrentMatch(roomCode);
 
     const tieMembers = this.getTie(match.id);
@@ -219,6 +218,24 @@ export class RoomService {
     if (selectItemId !== match.item_a_id && selectItemId !== match.item_b_id) {
       throw new BadRequestException('현재 매치의 후보에만 투표할 수 있습니다.');
     }
+
+    const preVote = await this.prisma.worldcupVote.findUnique({
+      where: {
+        member_id_match_id: {
+          member_id: memberId,
+          match_id: match.id,
+        },
+      },
+    });
+
+    if (preVote?.select_item_id == selectItemId) {
+      return {
+        status: 'voting' as const,
+        vote: { memberId, selectItemId },
+      };
+    }
+
+    console.log('[vote]:', selectItemId);
 
     try {
       await this.prisma.worldcupVote.upsert({
@@ -262,10 +279,18 @@ export class RoomService {
         vote: { memberId, selectItemId },
       };
     } else {
+      if (match.winner_id) {
+        return {
+          status: 'winner' as const,
+          winnerId: match.winner_id,
+        };
+      }
       const result = await this.decideMatchWinner(match.id);
+
       console.log('[투표 결과]', {
         matchId: match.id,
         result,
+        selectItemId,
       });
 
       if (result.status === 'tie') {
@@ -342,14 +367,28 @@ export class RoomService {
     const winnerId =
       AVoteCount > BVoteCount ? match.item_a_id : match.item_b_id;
 
-    await this.prisma.worldcupMatch.update({
+    const result = await this.prisma.worldcupMatch.updateMany({
       where: {
         id: match.id,
+        winner_id: null,
       },
       data: {
         winner_id: winnerId,
       },
     });
+
+    if (result.count === 0) {
+      const decideMatch = await this.prisma.worldcupMatch.findUnique({
+        where: {
+          id: match.id,
+        },
+      });
+
+      return {
+        status: 'winner' as const,
+        winnerId: decideMatch!.winner_id,
+      };
+    }
 
     return {
       status: 'winner' as const,
@@ -370,6 +409,16 @@ export class RoomService {
     }
 
     const nextRoundId = match.round_id + 1;
+    const IsnextRound = await this.prisma.worldcupMatch.findFirst({
+      where: {
+        room_id: match.room_id,
+        round_id: nextRoundId,
+      },
+    });
+    if (IsnextRound) {
+      return this.getCurrentMatch(roomCode);
+    }
+
     await this.createMatches(match.room_id, nextRoundId, winnerIds);
 
     console.log('match:', match.round_id, 'winner:', winnerIds);

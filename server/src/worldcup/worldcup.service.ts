@@ -164,7 +164,7 @@ export class WorldcupService {
     });
 
     if (!item) {
-      throw new NotFoundException('?꾨낫瑜?李얠쓣 ???놁뒿?덈떎.');
+      throw new NotFoundException('해당 아이템이 없습니다.');
     }
 
     await this.gameOwner(item.game_id, userId);
