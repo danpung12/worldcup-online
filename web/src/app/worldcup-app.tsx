@@ -304,6 +304,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tieDecisionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentMatchIdRef = useRef<number | null>(null);
+  const settledMatchIdRef = useRef<number | null>(null);
+  const pendingVoteItemIdRef = useRef<number | null>(null);
   const selectedGame =
     games.find((game) => game.id === selectedGameId) ?? games[0] ?? mockGames[0];
   const currentPlayer = currentMember
@@ -415,6 +418,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       if (isMatchResponse(update)) {
         clearNextMatchTimer();
         resetTieBreaker();
+        currentMatchIdRef.current = update.id;
+        settledMatchIdRef.current = null;
         setCurrentMatch(update);
         setWinnerId(null);
         setGameNotice(null);
@@ -428,6 +433,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       if ("finished" in update && update.finished) {
         clearNextMatchTimer();
         resetTieBreaker();
+        currentMatchIdRef.current = null;
+        settledMatchIdRef.current = null;
         setWinnerId(update.winnerId);
         setSelectedItemId(null);
         setGameNotice("월드컵이 종료되었습니다.");
@@ -453,9 +460,19 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       }
 
       if (update.status === "tie") {
+        if (
+          currentMatchIdRef.current !== null &&
+          (update.match.id !== currentMatchIdRef.current ||
+            update.match.id === settledMatchIdRef.current)
+        ) {
+          return;
+        }
+
         clearNextMatchTimer();
         clearTieDecisionTimer();
         const nextTieBreakerMemberId = update.tieBreakerMemberId ?? update.tieMembers ?? null;
+        currentMatchIdRef.current = update.match.id;
+        settledMatchIdRef.current = null;
         setCurrentMatch(update.match);
         setTieBreakerMemberId(nextTieBreakerMemberId);
         setTiePhase(nextTieBreakerMemberId ? "spinning" : "decided");
@@ -480,6 +497,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         resetTieBreaker();
         if (!update.vote) {
           clearNextMatchTimer();
+          currentMatchIdRef.current = update.match.id;
+          settledMatchIdRef.current = null;
           setCurrentMatch(update.match);
           setSelectedItemId(null);
           setVoteStamps([]);
@@ -489,6 +508,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         }
 
         addVoteStamp(update.vote);
+        settledMatchIdRef.current = currentMatchIdRef.current;
 
         if (update.vote.memberId === currentMember?.memberId) {
           setSelectedItemId(update.vote.selectItemId);
@@ -500,6 +520,8 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         }
 
         nextMatchTimerRef.current = setTimeout(() => {
+          currentMatchIdRef.current = update.match.id;
+          settledMatchIdRef.current = null;
           setCurrentMatch(update.match);
           setSelectedItemId(null);
           setVoteStamps([]);
@@ -551,6 +573,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     setGameNotice(null);
     setVoteStamps([]);
     setSelectedItemId(null);
+    currentMatchIdRef.current = null;
+    settledMatchIdRef.current = null;
+    pendingVoteItemIdRef.current = null;
     setActiveRoundSize(roundSize ?? selectedGame.participants);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
@@ -561,7 +586,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       return;
     }
 
-    if (selectedItemId === selectItemId) {
+    if (
+      selectedItemId === selectItemId ||
+      pendingVoteItemIdRef.current === selectItemId
+    ) {
       return;
     }
 
@@ -574,6 +602,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
     const previousSelectedItemId = selectedItemId;
 
+    pendingVoteItemIdRef.current = selectItemId;
     setGameNotice(null);
     setSelectedItemId(selectItemId);
     addVoteStamp({
@@ -596,6 +625,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         removeVoteStamp(currentMember.memberId);
       }
       setGameNotice("투표에 실패했습니다. 이미 투표했거나 현재 매치가 바뀌었을 수 있습니다.");
+    } finally {
+      if (pendingVoteItemIdRef.current === selectItemId) {
+        pendingVoteItemIdRef.current = null;
+      }
     }
   }
 
@@ -603,6 +636,9 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     clearNextMatchTimer();
     resetTieBreaker();
     setView("home");
+    currentMatchIdRef.current = null;
+    settledMatchIdRef.current = null;
+    pendingVoteItemIdRef.current = null;
     setCurrentMatch(null);
     setWinnerId(null);
     setGameNotice(null);
