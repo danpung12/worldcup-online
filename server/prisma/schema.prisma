@@ -20,6 +20,8 @@ model User {
   games   WorldcupGame[]
   members RoomMember[]
 
+  comment Comment[]
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -38,6 +40,7 @@ model WorldcupGame {
   creator    User @relation(fields: [creator_id], references: [id], onDelete: Cascade)
 
   play_count Int @default(0)
+  comment Comment[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -143,4 +146,25 @@ model WorldcupVote {
   room    WorldcupRoom @relation(fields: [room_id], references: [id], onDelete: Cascade)
 
   @@unique([member_id, match_id])
+
+
 }
+
+  model Comment {
+
+    id Int @id @default(autoincrement())
+
+    user_id Int?
+    user User? @relation(fields:[user_id], references: [id], onDelete: Cascade)
+    
+
+    nickname  String
+    content String
+    created_at  DateTime @default(now())
+
+
+    game_id Int
+    game  WorldcupGame  @relation(fields: [game_id], references: [id], onDelete: Cascade)
+
+
+  }
