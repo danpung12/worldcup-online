@@ -13,6 +13,7 @@ type RoomResponse = {
   game_id?: number;
   room_code: string;
   member: RoomMemberResponse[];
+  status?: string;
 };
 
 type WorldcupItemResponse = {
@@ -80,6 +81,18 @@ type JoinRoomAck = {
   room: RoomResponse;
 };
 
+type RoomVoteResponse = {
+  select_item_id: number;
+};
+
+type RoomStateResponse = {
+  status: string;
+  room: RoomResponse;
+  member: RoomMemberResponse;
+  match: MatchResponse | null;
+  vote: RoomVoteResponse | null;
+};
+
 let socket: Socket | null = null;
 
 export function getRoomSocket() {
@@ -140,6 +153,16 @@ export async function vote(selectItemId: number) {
   return activeSocket.timeout(5000).emitWithAck("vote", {
     selectItemId,
   }) as Promise<GameUpdateResponse>;
+}
+
+export async function roomState(payload: { memberId: number; roomCode: string }) {
+  const activeSocket = getRoomSocket();
+
+  if (!activeSocket.connected) {
+    activeSocket.connect();
+  }
+
+  return activeSocket.timeout(5000).emitWithAck("roomState", payload) as Promise<RoomStateResponse>;
 }
 
 export function sendChat(message: string) {
@@ -206,6 +229,7 @@ export type {
   ChatResponse,
   GameUpdateResponse,
   MatchResponse,
+  RoomStateResponse,
   RoomMemberResponse,
   RoomResponse,
   WorldcupItemResponse,

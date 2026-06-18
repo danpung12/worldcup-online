@@ -17,6 +17,7 @@ import {
   Crown,
   Expand,
   ImagePlus,
+  Loader2,
   LogOut,
   Pencil,
   Plus,
@@ -41,6 +42,7 @@ import {
   onGameUpdate,
   onRoomUpdate,
   onSocketException,
+  roomState,
   sendChat,
   startGame,
   vote,
@@ -48,6 +50,7 @@ import {
   type GameUpdateResponse,
   type MatchResponse,
   type RoomMemberResponse,
+  type RoomStateResponse,
   type WorldcupItemResponse,
 } from "@/lib/room-socket";
 import {
@@ -262,6 +265,47 @@ function getAuthProfile(user: AuthUser): Pick<Player, "name" | "avatar"> {
   };
 }
 
+function getStoredRoomMember(roomCode: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(`worldcup-room-member:${roomCode}`);
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const value = JSON.parse(rawValue) as { avatar?: string; memberId?: number };
+
+    if (typeof value.memberId !== "number") {
+      return null;
+    }
+
+    return {
+      avatar: value.avatar,
+      memberId: value.memberId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function setStoredRoomMember(
+  roomCode: string,
+  member: { avatar?: string; memberId: number },
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    `worldcup-room-member:${roomCode}`,
+    JSON.stringify(member),
+  );
+}
+
 export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -293,6 +337,7 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
   const [activeRoundSize, setActiveRoundSize] = useState<number | null>(null);
   const [isStarting, setIsStarting] = useState(false);
   const [isVoting, setIsVoting] = useState(false);
+  const [isRestoringRoom, setIsRestoringRoom] = useState(Boolean(initialRoomCode));
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
@@ -329,7 +374,12 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
   useEffect(() => {
     if (initialRoomCode) {
-      setView("profile");
+      const storedMember = getStoredRoomMember(initialRoomCode);
+
+      if (!storedMember) {
+        setIsRestoringRoom(false);
+        setView("profile");
+      }
     }
   }, [initialRoomCode, setView]);
 
@@ -541,6 +591,110 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     ],
   );
 
+  const applyRoomState = useCallback(
+    (state: RoomStateResponse) => {
+      const memberContext = {
+        avatar: state.member.avatar ?? getAvatarForName(state.member.nickname),
+        memberId: state.member.id,
+      };
+
+      clearNextMatchTimer();
+      resetTieBreaker();
+      currentMatchIdRef.current = state.match?.id ?? null;
+      settledMatchIdRef.current = null;
+      pendingVoteItemIdRef.current = null;
+      setCurrentMember(memberContext);
+      setPlayers(
+        mapRoomMembers(state.room.member, memberContext.memberId, memberContext.avatar),
+      );
+      if (state.room.game_id) {
+        selectGame(state.room.game_id, "lobby");
+      }
+      enterLobby(
+        state.room.room_code,
+        mapRoomMembers(state.room.member, memberContext.memberId, memberContext.avatar),
+      );
+      setActiveRoundSize(null);
+      setGameNotice(null);
+      setVoteStamps([]);
+      setSelectedItemId(state.vote?.select_item_id ?? null);
+
+      if (state.status === "PLAYING" && state.match) {
+        setCurrentMatch(state.match);
+        setWinnerId(null);
+        setView("play");
+        return;
+      }
+
+      if (state.status === "FINISHED") {
+        setCurrentMatch(null);
+        setWinnerId(null);
+        setView("result");
+        return;
+      }
+
+      setCurrentMatch(null);
+      setWinnerId(null);
+      setView("lobby");
+    },
+    [
+      clearNextMatchTimer,
+      enterLobby,
+      resetTieBreaker,
+      selectGame,
+      setPlayers,
+      setView,
+    ],
+  );
+
+  useEffect(() => {
+    if (!initialRoomCode) {
+      return;
+    }
+
+    const roomCodeToRestore = initialRoomCode;
+    const storedMember = getStoredRoomMember(roomCodeToRestore);
+
+    if (!storedMember) {
+      return;
+    }
+
+    setIsRestoringRoom(true);
+    const memberToRestore = storedMember;
+    let isCanceled = false;
+
+    async function restoreRoomState() {
+      try {
+        const state = await roomState({
+          memberId: memberToRestore.memberId,
+          roomCode: roomCodeToRestore,
+        });
+
+        if (isCanceled) {
+          return;
+        }
+
+        applyRoomState(state);
+        setStoredRoomMember(roomCodeToRestore, {
+          avatar: state.member.avatar ?? memberToRestore.avatar,
+          memberId: state.member.id,
+        });
+        setIsRestoringRoom(false);
+      } catch {
+        if (!isCanceled) {
+          setIsRestoringRoom(false);
+          setView("profile");
+        }
+      }
+    }
+
+    restoreRoomState();
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [applyRoomState, initialRoomCode, setView]);
+
   useEffect(() => {
     if (!currentMember) {
       return;
@@ -671,11 +825,13 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
         avatar: profile.avatar,
         memberId: result.member.id,
       };
+      const nextRoomCode = result.roomCode ?? result.room.room_code;
 
       setCurrentMember(memberContext);
-      setChatMessages([]);
+      setStoredRoomMember(nextRoomCode, memberContext);
+      router.replace(`/room/${nextRoomCode}`);
       enterLobby(
-        result.roomCode ?? result.room.room_code,
+        nextRoomCode,
         mapRoomMembers(
           result.room.member,
           memberContext.memberId,
@@ -700,11 +856,14 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
       avatar: profile.avatar,
       memberId: createdMember.id,
     };
+    const nextRoomCode = result.roomCode ?? result.room.room_code;
 
     setCurrentMember(memberContext);
+    setStoredRoomMember(nextRoomCode, memberContext);
+    router.replace(`/room/${nextRoomCode}`);
     setChatMessages([]);
     enterLobby(
-      result.roomCode ?? result.room.room_code,
+      nextRoomCode,
       mapRoomMembers(
         result.room.member,
         memberContext.memberId,
@@ -774,6 +933,10 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
     } finally {
       setLoggedOut();
     }
+  }
+
+  if (isRestoringRoom) {
+    return <RoomRestoreLoading />;
   }
 
   return (
@@ -866,6 +1029,26 @@ export default function WorldcupApp({ initialRoomCode }: WorldcupAppProps) {
 
         {shareToastMessage && <AppToast message={shareToastMessage} />}
       </div>
+    </main>
+  );
+}
+
+function RoomRestoreLoading() {
+  return (
+    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
+      <section className="mx-auto flex min-h-screen w-full max-w-[430px] items-center justify-center bg-[#f5f5f7] px-4 py-10 md:max-w-none">
+        <div className="w-full max-w-[360px] rounded-[18px] border border-[#e0e0e0] bg-white px-5 py-6 text-center">
+          <div className="mx-auto grid size-11 place-items-center rounded-full bg-[#0066cc] text-white">
+            <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+          </div>
+          <h1 className="mt-5 text-[21px] font-semibold leading-[1.19] tracking-[0.231px]">
+            게임으로 돌아가는 중
+          </h1>
+          <p className="mt-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#6e6e73]">
+            네트워크 연결이 끊겼거나 새로고침된 경우에도 이어서 참여할 수 있도록 현재 상태를 확인하고 있습니다.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }

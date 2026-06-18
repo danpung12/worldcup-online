@@ -111,4 +111,19 @@ export class RoomGateway {
 
     this.server.to(client.data.roomCode).emit('chatUpdate', chat);
   }
+
+  @SubscribeMessage('roomState')
+  async roomState(
+    @MessageBody() body: { memberId: number; roomCode: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.join(body.roomCode);
+    client.data.roomCode = body.roomCode;
+    client.data.memberId = body.memberId;
+
+    const chats = this.chatService.getChats(body.roomCode);
+    client.emit('chatHistory', chats);
+
+    return this.roomService.state(body.memberId, body.roomCode);
+  }
 }

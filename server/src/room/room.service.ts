@@ -120,6 +120,11 @@ export class RoomService {
 
     await this.createMatches(room.id, 1, sizeItems);
 
+    await this.prisma.worldcupRoom.update({
+      where: { id: room.id },
+      data: { status: 'PLAYING' },
+    });
+
     return this.getCurrentMatch(roomCode);
   }
 
@@ -387,6 +392,10 @@ export class RoomService {
     const winnerIds = matches.map((match) => match.winner_id!);
 
     if (winnerIds.length === 1) {
+      await this.prisma.worldcupRoom.update({
+        where: { id: match.room_id },
+        data: { status: 'FINISHED' },
+      });
       return {
         winnerId: winnerIds[0],
         finished: true,
@@ -476,5 +485,52 @@ export class RoomService {
     });
 
     return randomMember.id;
+  }
+
+  async state(memberId: number, roomCode: string) {
+    const member = await this.prisma.roomMember.findFirst({
+      where: {
+        id: memberId,
+        room: {
+          room_code: roomCode,
+        },
+      },
+      include: {
+        room: {
+          include: {
+            member: true,
+            game: true,
+          },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException('방 참여자를 찾을 수 없습니다.');
+    }
+
+    let match: any = null;
+    let vote: any = null;
+
+    if (member.room.status === 'PLAYING') {
+      match = await this.getCurrentMatch(roomCode);
+
+      vote = await this.prisma.worldcupVote.findUnique({
+        where: {
+          member_id_match_id: {
+            member_id: memberId,
+            match_id: match.id,
+          },
+        },
+      });
+    }
+
+    return {
+      room: member.room,
+      member,
+      match,
+      vote,
+      status: member.room.status,
+    };
   }
 }
