@@ -300,6 +300,7 @@ export function LobbyView({
 export function PlayView({
   activeRoundSize,
   currentMemberId,
+  isSoloMode,
   isVoting,
   messages,
   match,
@@ -314,6 +315,7 @@ export function PlayView({
 }: {
   activeRoundSize: number;
   currentMemberId: number | null;
+  isSoloMode: boolean;
   isVoting: boolean;
   messages: ChatResponse[];
   match: MatchResponse;
@@ -348,8 +350,14 @@ export function PlayView({
   }, [isWaitingForOthers]);
 
   return (
-    <section className="flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3 md:grid md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-[auto_minmax(0,1fr)] md:gap-4 md:p-4">
-      <div className="bg-white px-4 pb-3 pt-4 md:col-span-2 md:rounded-[18px] md:border md:border-[#e0e0e0] md:px-5 md:py-4">
+    <section
+      className={`flex h-[calc(100dvh-44px)] flex-col overflow-hidden pb-3 ${
+        isSoloMode
+          ? "md:p-4"
+          : "md:grid md:grid-cols-[minmax(0,1fr)_360px] md:grid-rows-[auto_minmax(0,1fr)] md:gap-4 md:p-4"
+      }`}
+    >
+      <div className={`bg-white px-4 pb-3 pt-4 md:rounded-[18px] md:border md:border-[#e0e0e0] md:px-5 md:py-4 ${isSoloMode ? "" : "md:col-span-2"}`}>
         <div className="flex items-center justify-between gap-3">
           <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#1d1d1f]">
             {roundLabel}
@@ -367,7 +375,11 @@ export function PlayView({
         )}
       </div>
 
-      <div className="relative grid shrink-0 grid-cols-2 items-stretch gap-px bg-black md:min-h-0 md:rounded-[18px] md:border md:border-black md:h-full md:overflow-hidden">
+      <div
+        className={`relative grid grid-cols-2 items-stretch gap-px bg-black md:min-h-0 md:rounded-[18px] md:border md:border-black md:overflow-hidden ${
+          isSoloMode ? "min-h-0 flex-1" : "shrink-0 md:h-full"
+        }`}
+      >
         <VoteCard
           disabled={voteDisabled || selectedItemId === match.item_a_id}
           item={match.item_a}
@@ -392,14 +404,16 @@ export function PlayView({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 px-3 pt-3 md:px-0 md:pt-0">
-        <ChatPanel
-          currentMemberId={currentMemberId}
-          messages={messages}
-          onSend={onSendChat}
-          players={players}
-        />
-      </div>
+      {!isSoloMode && (
+        <div className="min-h-0 flex-1 px-3 pt-3 md:px-0 md:pt-0">
+          <ChatPanel
+            currentMemberId={currentMemberId}
+            messages={messages}
+            onSend={onSendChat}
+            players={players}
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -784,10 +798,12 @@ function VoteStampLayer({ stamps }: { stamps: VoteStamp[] }) {
 }
 
 export function ResultView({
+  actionLabel = "로비로",
   match,
   onBackToLobby,
   winnerId,
 }: {
+  actionLabel?: string;
   match: MatchResponse | null;
   onBackToLobby: () => void;
   winnerId: number | null;
@@ -834,7 +850,7 @@ export function ResultView({
           type="button"
           onClick={onBackToLobby}
         >
-          로비로
+          {actionLabel}
         </button>
       </div>
     </section>

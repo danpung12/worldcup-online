@@ -144,9 +144,11 @@ function getRandomProfilePreset() {
 
 export function ProfileView({
   game,
+  mode = "multi",
   onComplete,
 }: {
   game: WorldcupGame;
+  mode?: "solo" | "multi";
   onComplete: (profile: Pick<Player, "name" | "avatar">) => Promise<void>;
 }) {
   const [profilePreset] = useState(getRandomProfilePreset);
@@ -174,7 +176,7 @@ export function ProfileView({
       <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-12 md:pt-14">
         <div className="mx-auto max-w-[860px]">
         <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-          함께 플레이하기 전에
+          {mode === "solo" ? "혼자 시작하기 전에" : "함께 플레이하기 전에"}
         </p>
         <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">
           프로필을 정해주세요.
@@ -244,4 +246,3 @@ export function ProfileView({
     </section>
   );
 }
-

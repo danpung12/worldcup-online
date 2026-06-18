@@ -11,7 +11,9 @@ import {
   ArrowLeft,
   Loader2,
   LogOut,
+  Play,
   Share2,
+  Trophy,
   UserRound,
   X,
 } from "lucide-react";
@@ -67,6 +69,7 @@ type VoteStamp = {
   y: number;
 };
 type TiePhase = "idle" | "spinning" | "decided" | "revealed";
+type RoomMode = "solo" | "multi";
 const legalDocuments: Record<
   LegalDocumentKey,
   {
@@ -281,17 +284,35 @@ function setStoredRoomMember(
   );
 }
 
+function getStoredRoomMode(roomCode: string): RoomMode {
+  if (typeof window === "undefined") {
+    return "multi";
+  }
+
+  return window.localStorage.getItem(`worldcup-room-mode:${roomCode}`) === "solo"
+    ? "solo"
+    : "multi";
+}
+
+function setStoredRoomMode(roomCode: string, mode: RoomMode) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(`worldcup-room-mode:${roomCode}`, mode);
+}
+
 function clearStoredRoomMembers() {
   if (typeof window === "undefined") {
     return;
   }
 
-  const prefix = "worldcup-room-member:";
+  const prefixes = ["worldcup-room-member:", "worldcup-room-mode:"];
 
   for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
     const key = window.localStorage.key(index);
 
-    if (key?.startsWith(prefix)) {
+    if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
       window.localStorage.removeItem(key);
     }
   }
@@ -320,6 +341,7 @@ export default function WorldcupApp({
   const setView = useWorldcupStore((state) => state.setView);
   const selectGame = useWorldcupStore((state) => state.selectGame);
   const enterLobby = useWorldcupStore((state) => state.enterLobby);
+  const setRoomContext = useWorldcupStore((state) => state.setRoomContext);
   const setPlayers = useWorldcupStore((state) => state.setPlayers);
   const authUser = useAuthStore((state) => state.user);
   const setLoggedOut = useAuthStore((state) => state.setLoggedOut);
@@ -336,12 +358,15 @@ export default function WorldcupApp({
   const [isRestoringRoom, setIsRestoringRoom] = useState(
     Boolean(initialRoomCode && !skipRoomRestore),
   );
+  const [roomMode, setRoomMode] = useState<RoomMode>("multi");
   const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
   const [tieBreakerMemberId, setTieBreakerMemberId] = useState<number | null>(null);
   const [tiePhase, setTiePhase] = useState<TiePhase>("idle");
   const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
+  const [soloSetupGameId, setSoloSetupGameId] = useState<number | null>(null);
+  const [soloSetupError, setSoloSetupError] = useState<string | null>(null);
   const [openLegalDocument, setOpenLegalDocument] = useState<LegalDocumentKey | null>(null);
   const [shareToastMessage, setShareToastMessage] = useState<string | null>(null);
   const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -354,10 +379,12 @@ export default function WorldcupApp({
   const activeSelectedGameId = initialGameId ?? selectedGameId;
   const selectedGame =
     games.find((game) => game.id === activeSelectedGameId) ?? games[0] ?? mockGames[0];
+  const soloSetupGame = games.find((game) => game.id === soloSetupGameId) ?? null;
   const currentPlayer = currentMember
     ? players.find((player) => player.id === currentMember.memberId)
     : null;
   const isCurrentHost = currentPlayer?.isHost ?? false;
+  const isSoloMode = roomMode === "solo";
   const titleByView = {
     home: "이상형 월드컵",
     create: "만들기",
@@ -422,6 +449,10 @@ export default function WorldcupApp({
 
   const addVoteStamp = useCallback(
     (vote: { memberId: number; selectItemId: number }) => {
+      if (roomMode === "solo") {
+        return;
+      }
+
       const player = players.find((currentPlayer) => currentPlayer.id === vote.memberId);
 
       setVoteStamps((current) => {
@@ -440,7 +471,7 @@ export default function WorldcupApp({
         ];
       });
     },
-    [currentMatch?.id, players],
+    [currentMatch?.id, players, roomMode],
   );
 
   const removeVoteStamp = useCallback((memberId: number) => {
@@ -465,6 +496,8 @@ export default function WorldcupApp({
         setSelectedItemId(null);
         setVoteStamps([]);
         setGameNotice(null);
+        setSoloSetupGameId(null);
+        setSoloSetupError(null);
         setView("play");
         return;
       }
@@ -586,12 +619,14 @@ export default function WorldcupApp({
         avatar: state.member.avatar ?? getAvatarForName(state.member.nickname),
         memberId: state.member.id,
       };
+      const restoredRoomMode = getStoredRoomMode(state.room.room_code);
 
       clearNextMatchTimer();
       resetTieBreaker();
       currentMatchIdRef.current = state.match?.id ?? null;
       settledMatchIdRef.current = null;
       pendingVoteItemIdRef.current = null;
+      setRoomMode(restoredRoomMode);
       setCurrentMember(memberContext);
       setPlayers(
         mapRoomMembers(state.room.member, memberContext.memberId, memberContext.avatar),
@@ -694,6 +729,23 @@ export default function WorldcupApp({
   }, [applyRoomState, initialRoomCode, setView, skipRoomRestore]);
 
   useEffect(() => {
+    const offGameUpdate = onGameUpdate((update) => {
+      applyGameUpdate(update);
+    });
+    const offSocketException = onSocketException((error) => {
+      setSoloSetupError(readSocketError(error));
+      setIsStarting(false);
+      setIsVoting(false);
+      setGameNotice(readSocketError(error));
+    });
+
+    return () => {
+      offGameUpdate();
+      offSocketException();
+    };
+  }, [applyGameUpdate]);
+
+  useEffect(() => {
     if (!currentMember) {
       return;
     }
@@ -703,23 +755,13 @@ export default function WorldcupApp({
         mapRoomMembers(room.member, currentMember.memberId, currentMember.avatar),
       );
     });
-    const offGameUpdate = onGameUpdate((update) => {
-      applyGameUpdate(update);
-    });
-    const offSocketException = onSocketException((error) => {
-      setIsStarting(false);
-      setIsVoting(false);
-      setGameNotice(readSocketError(error));
-    });
 
     return () => {
       offRoomUpdate();
-      offGameUpdate();
-      offSocketException();
     };
-  }, [applyGameUpdate, currentMember, setPlayers]);
+  }, [currentMember, setPlayers]);
 
-  function handleStartGame(roundSize?: number) {
+  const handleStartGame = useCallback((roundSize?: number) => {
     clearNextMatchTimer();
     resetTieBreaker();
     setGameNotice(null);
@@ -731,7 +773,7 @@ export default function WorldcupApp({
     setActiveRoundSize(roundSize ?? selectedGame.participants);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
-  }
+  }, [clearNextMatchTimer, resetTieBreaker, selectedGame.participants]);
 
   async function handleVote(selectItemId: number) {
     if (!currentMember) {
@@ -798,8 +840,11 @@ export default function WorldcupApp({
     setChatMessages([]);
     setSelectedItemId(null);
     setVoteStamps([]);
+    setRoomMode("multi");
+    setSoloSetupGameId(null);
+    setSoloSetupError(null);
 
-    if (initialRoomCode || initialView) {
+    if (initialRoomCode || initialView || window.location.pathname !== "/") {
       router.replace("/");
     }
   }
@@ -813,6 +858,8 @@ export default function WorldcupApp({
     profile: Pick<Player, "name" | "avatar">,
     gameId = selectedGame.id,
   ) {
+    setRoomMode("multi");
+
     if (initialRoomCode) {
       const result = await joinRoom({
         avatar: profile.avatar,
@@ -827,6 +874,7 @@ export default function WorldcupApp({
 
       setCurrentMember(memberContext);
       setStoredRoomMember(nextRoomCode, memberContext);
+      setStoredRoomMode(nextRoomCode, "multi");
       router.replace(`/room/${nextRoomCode}?fresh=1`);
       enterLobby(
         nextRoomCode,
@@ -858,6 +906,7 @@ export default function WorldcupApp({
 
     setCurrentMember(memberContext);
     setStoredRoomMember(nextRoomCode, memberContext);
+    setStoredRoomMode(nextRoomCode, "multi");
     router.replace(`/room/${nextRoomCode}?fresh=1`);
     setChatMessages([]);
     enterLobby(
@@ -870,11 +919,75 @@ export default function WorldcupApp({
     );
   }
 
+  async function handleSoloStart(roundSize?: number) {
+    if (!soloSetupGame) {
+      return;
+    }
+
+    const profile = authUser
+      ? getAuthProfile(authUser)
+      : {
+          avatar: getAvatarForName("혼자하기"),
+          name: "혼자하기",
+        };
+
+    setIsStarting(true);
+    setSoloSetupError(null);
+    setRoomMode("solo");
+    clearNextMatchTimer();
+    resetTieBreaker();
+    setCurrentMatch(null);
+    setWinnerId(null);
+    setGameNotice(null);
+    setSelectedItemId(null);
+    setVoteStamps([]);
+    currentMatchIdRef.current = null;
+    settledMatchIdRef.current = null;
+    pendingVoteItemIdRef.current = null;
+
+    try {
+      const result = await createRoom({
+        avatar: profile.avatar,
+        gameId: soloSetupGame.id,
+        nickname: profile.name,
+      });
+      const createdMember = result.member ?? result.room.member[0];
+
+      if (!createdMember) {
+        throw new Error("방 참가자 정보를 찾을 수 없습니다.");
+      }
+
+      const memberContext = {
+        avatar: profile.avatar,
+        memberId: createdMember.id,
+      };
+      const nextRoomCode = result.roomCode ?? result.room.room_code;
+      const nextPlayers = mapRoomMembers(
+        result.room.member,
+        memberContext.memberId,
+        memberContext.avatar,
+      );
+
+      setCurrentMember(memberContext);
+      setPlayers(nextPlayers);
+      setRoomContext(nextRoomCode, nextPlayers);
+      setStoredRoomMember(nextRoomCode, memberContext);
+      setStoredRoomMode(nextRoomCode, "solo");
+      window.history.replaceState(null, "", `/room/${nextRoomCode}`);
+      setChatMessages([]);
+      handleStartGame(roundSize);
+    } catch {
+      setIsStarting(false);
+      setSoloSetupError("게임을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    }
+  }
+
   async function handleProfileComplete(profile: Pick<Player, "name" | "avatar">) {
     await enterRoomWithProfile(profile);
   }
 
   async function handleGameJoin(gameId: number) {
+    setRoomMode("multi");
     selectGame(gameId, authUser ? "home" : "profile");
 
     if (!authUser) {
@@ -889,6 +1002,13 @@ export default function WorldcupApp({
     } catch {
       selectGame(gameId, "profile");
     }
+  }
+
+  function handleGameStart(gameId: number) {
+    setRoomMode("solo");
+    selectGame(gameId, "home");
+    setSoloSetupGameId(gameId);
+    setSoloSetupError(null);
   }
 
   function handleSendChat(message: string) {
@@ -942,6 +1062,7 @@ export default function WorldcupApp({
       setSelectedItemId(null);
       setVoteStamps([]);
       setPlayers([]);
+      setRoomMode("multi");
       setLoggedOut();
     }
   }
@@ -975,6 +1096,7 @@ export default function WorldcupApp({
             onRanking={(id) => {
               router.push(`/ranking/${id}`);
             }}
+            onStart={handleGameStart}
           />
         )}
         {activeView === "create" && (
@@ -984,7 +1106,13 @@ export default function WorldcupApp({
             onLogin={handleLogin}
           />
         )}
-        {activeView === "profile" && <ProfileView game={selectedGame} onComplete={handleProfileComplete} />}
+        {activeView === "profile" && (
+          <ProfileView
+            game={selectedGame}
+            mode={roomMode}
+            onComplete={handleProfileComplete}
+          />
+        )}
         {activeView === "lobby" && (
           <LobbyView
             currentMemberId={currentMember?.memberId ?? null}
@@ -1002,24 +1130,26 @@ export default function WorldcupApp({
           <PlayView
             isVoting={isVoting}
             activeRoundSize={activeRoundSize ?? getDefaultRoundSize(selectedGame.participants) ?? selectedGame.participants}
+            isSoloMode={isSoloMode}
             messages={chatMessages}
             match={currentMatch}
             notice={gameNotice}
-            onSendChat={handleSendChat}
+            onSendChat={isSoloMode ? () => undefined : handleSendChat}
             onVote={handleVote}
             players={players}
             selectedItemId={selectedItemId}
             currentMemberId={currentMember?.memberId ?? null}
             tieBreakerMemberId={tieBreakerMemberId}
             tiePhase={tiePhase}
-            voteStamps={voteStamps}
+            voteStamps={isSoloMode ? [] : voteStamps}
           />
         )}
         {activeView === "result" && (
           <ResultView
+            actionLabel={isSoloMode ? "홈으로" : "로비로"}
             match={currentMatch}
             winnerId={winnerId}
-            onBackToLobby={() => setView("lobby")}
+            onBackToLobby={isSoloMode ? handleBackToHome : () => setView("lobby")}
           />
         )}
         {activeView === "ranking" && <RankingView game={selectedGame} onJoin={() => handleGameJoin(selectedGame.id)} />}
@@ -1032,6 +1162,24 @@ export default function WorldcupApp({
           <LoginRequiredModal
             onCancel={() => setShowLoginRequiredModal(false)}
             onConfirm={handleLogin}
+          />
+        )}
+
+        {soloSetupGame && (
+          <SoloStartModal
+            key={soloSetupGame.id}
+            errorMessage={soloSetupError}
+            game={soloSetupGame}
+            isStarting={isStarting}
+            onCancel={() => {
+              setSoloSetupGameId(null);
+              setSoloSetupError(null);
+              setIsStarting(false);
+              if (roomMode === "solo") {
+                setRoomMode("multi");
+              }
+            }}
+            onStart={handleSoloStart}
           />
         )}
 
@@ -1065,6 +1213,110 @@ function RoomRestoreLoading() {
         </div>
       </section>
     </main>
+  );
+}
+
+function SoloStartModal({
+  errorMessage,
+  game,
+  isStarting,
+  onCancel,
+  onStart,
+}: {
+  errorMessage: string | null;
+  game: typeof mockGames[number];
+  isStarting: boolean;
+  onCancel: () => void;
+  onStart: (roundSize?: number) => void;
+}) {
+  const roundOptions = [8, 16, 32, 64, 128].filter((roundSize) => roundSize <= game.participants);
+  const defaultRoundSize = getDefaultRoundSize(game.participants);
+  const [selectedRoundSize, setSelectedRoundSize] = useState<number | undefined>(defaultRoundSize);
+
+  const startLabel = selectedRoundSize ? `${selectedRoundSize}강 시작` : "전체 후보로 시작";
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/38 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-[390px] rounded-[18px] border border-[#e0e0e0] bg-white px-5 py-5 md:max-w-[560px] md:px-7 md:py-7">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+              혼자 시작하기
+            </p>
+            <h2 className="mt-1 line-clamp-2 text-[28px] font-semibold leading-[1.12] tracking-[-0.374px] text-[#1d1d1f] md:text-[34px]">
+              {game.title}
+            </h2>
+          </div>
+          <button
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[#333333] active:scale-95 disabled:opacity-50"
+            type="button"
+            aria-label="혼자 시작 닫기"
+            disabled={isStarting}
+            onClick={onCancel}
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-[18px] bg-[#f5f5f7] px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#1d1d1f]">
+                라운드 선택
+              </p>
+              <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
+                후보 {game.participants.toLocaleString()}개 중 몇 강으로 시작할지 고르세요.
+              </p>
+            </div>
+            <Trophy className="size-5 shrink-0 text-[#0066cc]" />
+          </div>
+
+          {roundOptions.length > 0 ? (
+            <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3">
+              {roundOptions.map((roundSize) => (
+                <button
+                  key={roundSize}
+                  className={`h-11 rounded-full border text-[15px] tracking-[-0.224px] active:scale-95 ${
+                    selectedRoundSize === roundSize
+                      ? "border-[#0066cc] bg-[#0066cc] text-white"
+                      : "border-[#d2d2d7] bg-white text-[#1d1d1f]"
+                  }`}
+                  type="button"
+                  disabled={isStarting}
+                  onClick={() => setSelectedRoundSize(roundSize)}
+                >
+                  {roundSize}강
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl bg-white px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+              후보가 8개 미만이라 전체 후보로 시작합니다.
+            </div>
+          )}
+        </div>
+
+        {errorMessage && (
+          <p className="mt-3 rounded-2xl bg-[#fff8ef] px-4 py-3 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#8a4b00]">
+            {errorMessage}
+          </p>
+        )}
+
+        <button
+          className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8] md:h-14"
+          type="button"
+          disabled={isStarting}
+          onClick={() => onStart(selectedRoundSize)}
+        >
+          {isStarting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Play className="size-4 fill-white" />
+          )}
+          {isStarting ? "시작 중" : startLabel}
+        </button>
+      </section>
+    </div>
   );
 }
 

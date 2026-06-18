@@ -16,11 +16,13 @@ export function HomeView({
   hasBackendError,
   onJoin,
   onRanking,
+  onStart,
 }: {
   games: WorldcupGame[];
   hasBackendError: boolean;
   onJoin: (id: number) => void;
   onRanking: (id: number) => void;
+  onStart: (id: number) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<HomeSortMode>("popular");
@@ -96,7 +98,13 @@ export function HomeView({
 
       <div className="mx-auto grid max-w-[1180px] gap-3 px-3 md:grid-cols-2 md:gap-5 md:px-8 lg:grid-cols-3">
         {visibleGames.map((game) => (
-          <GameCard key={game.id} game={game} onJoin={() => onJoin(game.id)} onRanking={() => onRanking(game.id)} />
+          <GameCard
+            key={game.id}
+            game={game}
+            onJoin={() => onJoin(game.id)}
+            onRanking={() => onRanking(game.id)}
+            onStart={() => onStart(game.id)}
+          />
         ))}
         {visibleGames.length === 0 && (
           <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-8 text-center text-[15px] tracking-[-0.224px] text-[#7a7a7a]">
@@ -120,10 +128,12 @@ function GameCard({
   game,
   onJoin,
   onRanking,
+  onStart,
 }: {
   game: WorldcupGame;
   onJoin: () => void;
   onRanking: () => void;
+  onStart: () => void;
 }) {
   return (
     <article className="grid grid-cols-[104px_1fr] gap-4 rounded-[18px] border border-[#e0e0e0] bg-white p-4 md:flex md:min-h-full md:flex-col md:gap-0 md:overflow-hidden md:p-0">
@@ -149,33 +159,42 @@ function GameCard({
           </span>
         </div>
 
-        <div className="mt-2 flex items-center gap-2 text-[12px] tracking-[-0.12px] text-[#7a7a7a] md:mt-3">
-          <Users className="size-3.5" />
-          <span>{game.participants.toLocaleString()} 후보</span>
-          <span>·</span>
-          <span>{game.updatedAt}</span>
+        <div className="mt-2 flex items-center justify-between gap-2 md:mt-3">
+          <div className="flex min-w-0 items-center gap-2 text-[12px] tracking-[-0.12px] text-[#7a7a7a]">
+            <Users className="size-3.5 shrink-0" />
+            <span className="shrink-0">{game.participants.toLocaleString()} 후보</span>
+            <span className="shrink-0">·</span>
+            <span className="truncate">{game.updatedAt}</span>
+          </div>
+          <button
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-1 text-[12px] tracking-[-0.12px] text-[#0066cc] active:scale-95 md:text-[13px]"
+            type="button"
+            onClick={onRanking}
+          >
+            <BarChart3 className="size-3.5 shrink-0" />
+            랭킹보기
+          </button>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-1.5 md:mt-auto md:gap-2 md:pt-5">
           <button
             className={`${applePrimaryPillClass} min-w-0 whitespace-nowrap !h-9 !gap-1 !px-2 !text-[12px] !leading-none !tracking-[-0.12px] md:!h-11 md:!gap-2 md:!px-[22px] md:!text-[17px] md:!tracking-[-0.374px]`}
             type="button"
-            onClick={onJoin}
+            onClick={onStart}
           >
             <Play className="size-3 shrink-0 fill-white md:size-4" />
-            함께하기
+            시작하기
           </button>
           <button
             className={`${appleSecondaryPillClass} min-w-0 whitespace-nowrap !h-9 !gap-1 !px-2 !text-[12px] !leading-none !tracking-[-0.12px] md:!h-11 md:!gap-2 md:!px-[22px] md:!text-[17px] md:!tracking-[-0.374px]`}
             type="button"
-            onClick={onRanking}
+            onClick={onJoin}
           >
-            <BarChart3 className="size-3 shrink-0 md:size-4" />
-            랭킹보기
+            <Users className="size-3 shrink-0 md:size-4" />
+            함께하기
           </button>
         </div>
       </div>
     </article>
   );
 }
-
