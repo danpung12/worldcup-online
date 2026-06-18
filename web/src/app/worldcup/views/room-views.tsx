@@ -41,6 +41,7 @@ function getMatchRoundLabel(match: MatchResponse, activeRoundSize: number) {
 }
 
 export function LobbyView({
+  currentMemberId,
   game,
   isCurrentHost,
   isStarting,
@@ -50,6 +51,7 @@ export function LobbyView({
   onStart,
   roomCode,
 }: {
+  currentMemberId: number | null;
   game: WorldcupGame;
   isCurrentHost: boolean;
   isStarting: boolean;
@@ -252,7 +254,12 @@ export function LobbyView({
 
       <section className="px-4 pb-4 md:col-start-1 md:px-0 md:pb-0">
         <div className="h-[280px] md:h-[360px]">
-          <ChatPanel messages={messages} onSend={onSendChat} players={players} />
+          <ChatPanel
+            currentMemberId={currentMemberId}
+            messages={messages}
+            onSend={onSendChat}
+            players={players}
+          />
         </div>
       </section>
 
@@ -386,7 +393,12 @@ export function PlayView({
       </div>
 
       <div className="min-h-0 flex-1 px-3 pt-3 md:px-0 md:pt-0">
-        <ChatPanel messages={messages} onSend={onSendChat} players={players} />
+        <ChatPanel
+          currentMemberId={currentMemberId}
+          messages={messages}
+          onSend={onSendChat}
+          players={players}
+        />
       </div>
     </section>
   );
@@ -573,10 +585,12 @@ function TieBreakerOverlay({
 }
 
 function ChatPanel({
+  currentMemberId,
   messages,
   onSend,
   players,
 }: {
+  currentMemberId: number | null;
   messages: ChatResponse[];
   onSend: (message: string) => void;
   players: Player[];
@@ -624,47 +638,73 @@ function ChatPanel({
         className="min-h-0 flex-1 overflow-y-auto bg-[#fafafc] px-3 py-3 md:px-4 md:py-4"
       >
         {chatGroups.map((group, groupIndex) => {
+          const isOwnGroup = currentMemberId === group.memberId;
           const player = players.find((currentPlayer) => currentPlayer.id === group.memberId);
           const lastMessage = group.messages.at(-1);
 
           return (
             <div
               key={`${group.memberId}-${group.messages[0]?.createdAt ?? groupIndex}`}
-              className="mt-3 flex items-start gap-2 first:mt-0 md:gap-3"
+              className={`mt-3 flex items-start gap-2 first:mt-0 md:gap-3 ${
+                isOwnGroup ? "justify-end" : ""
+              }`}
             >
               <Image
                 alt={`${player?.name ?? "참가자"} 아바타`}
-                className="size-8 shrink-0 rounded-full border border-[#e0e0e0] bg-white md:size-10"
+                className={`${isOwnGroup ? "hidden " : ""}size-8 shrink-0 rounded-full border border-[#e0e0e0] bg-white md:size-10`}
                 height={40}
                 src={player?.avatar ?? getAvatarForName(String(group.memberId))}
                 unoptimized
                 width={40}
               />
-              <div className="flex min-w-0 max-w-[78%] flex-col items-start md:max-w-[82%]">
-                <div className="mb-1 flex max-w-full items-center gap-2">
-                  <span className="max-w-[120px] truncate text-[12px] font-normal leading-none tracking-[-0.12px] text-[#333333] md:max-w-[160px] md:text-[13px]">
-                    {player?.name ?? "참가자"}
-                  </span>
-                  {lastMessage && (
-                    <time className="text-[10px] leading-[1.3] tracking-[-0.08px] text-[#7a7a7a] md:text-[11px]">
-                      {formatChatTime(lastMessage.createdAt)}
-                    </time>
-                  )}
-                </div>
-                <div className="flex max-w-full flex-col items-start gap-1">
+              <div className={`flex min-w-0 max-w-[78%] flex-col md:max-w-[82%] ${isOwnGroup ? "items-end" : "items-start"}`}>
+                {!isOwnGroup && (
+                  <div className="mb-1 flex max-w-full items-center gap-2">
+                    <span className="max-w-[120px] truncate text-[12px] font-normal leading-none tracking-[-0.12px] text-[#333333] md:max-w-[160px] md:text-[13px]">
+                      {player?.name ?? "참가자"}
+                    </span>
+                    {lastMessage && (
+                      <time className="text-[10px] leading-[1.3] tracking-[-0.08px] text-[#7a7a7a] md:text-[11px]">
+                        {formatChatTime(lastMessage.createdAt)}
+                      </time>
+                    )}
+                  </div>
+                )}
+                <div className={`flex max-w-full flex-col gap-1 ${isOwnGroup ? "items-end" : "items-start"}`}>
                   {group.messages.map((chat, messageIndex) => {
                     const isFirstInGroup = messageIndex === 0;
                     const isLastInGroup = messageIndex === group.messages.length - 1;
 
                     return (
-                      <p
+                      <div
                         key={`${chat.memberId}-${chat.createdAt}-${messageIndex}`}
-                        className={`w-fit max-w-full break-words border border-[#f0f0f0] bg-white px-3 py-2 text-[15px] font-normal leading-[1.47] tracking-[-0.374px] text-[#1d1d1f] shadow-sm md:px-4 md:py-2.5 md:text-[16px] ${
-                          isFirstInGroup ? "rounded-tl-[18px]" : "rounded-tl-[8px]"
-                        } ${isLastInGroup ? "rounded-bl-[18px]" : "rounded-bl-[8px]"} rounded-r-[18px]`}
+                        className={`flex max-w-full items-end gap-1.5 ${
+                          isOwnGroup ? "justify-end" : "justify-start"
+                        }`}
                       >
-                        {chat.message}
-                      </p>
+                        {isOwnGroup && isLastInGroup && (
+                          <time className="shrink-0 pb-0.5 text-[10px] leading-[1.3] tracking-[-0.08px] text-[#7a7a7a] md:text-[11px]">
+                            {formatChatTime(chat.createdAt)}
+                          </time>
+                        )}
+                        <p
+                          className={`w-fit max-w-full break-words px-3 py-2 text-[15px] font-normal leading-[1.47] tracking-[-0.374px] md:px-4 md:py-2.5 md:text-[16px] ${
+                            isOwnGroup
+                              ? `bg-[#0066cc] text-white ${
+                                  isFirstInGroup ? "rounded-tr-[18px]" : "rounded-tr-[8px]"
+                                } ${
+                                  isLastInGroup ? "rounded-br-[18px]" : "rounded-br-[8px]"
+                                } rounded-l-[18px]`
+                              : `border border-[#f0f0f0] bg-white text-[#1d1d1f] shadow-sm ${
+                                  isFirstInGroup ? "rounded-tl-[18px]" : "rounded-tl-[8px]"
+                                } ${
+                                  isLastInGroup ? "rounded-bl-[18px]" : "rounded-bl-[8px]"
+                                } rounded-r-[18px]`
+                          }`}
+                        >
+                          {chat.message}
+                        </p>
+                      </div>
                     );
                   })}
                 </div>
@@ -800,4 +840,3 @@ export function ResultView({
     </section>
   );
 }
-

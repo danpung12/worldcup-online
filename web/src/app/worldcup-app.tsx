@@ -281,6 +281,22 @@ function setStoredRoomMember(
   );
 }
 
+function clearStoredRoomMembers() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const prefix = "worldcup-room-member:";
+
+  for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.localStorage.key(index);
+
+    if (key?.startsWith(prefix)) {
+      window.localStorage.removeItem(key);
+    }
+  }
+}
+
 export default function WorldcupApp({
   initialGameId,
   initialRoomCode,
@@ -916,6 +932,16 @@ export default function WorldcupApp({
     try {
       await logoutAuth();
     } finally {
+      clearStoredRoomMembers();
+      setCurrentMember(null);
+      setCurrentMatch(null);
+      setWinnerId(null);
+      setGameNotice(null);
+      setActiveRoundSize(null);
+      setChatMessages([]);
+      setSelectedItemId(null);
+      setVoteStamps([]);
+      setPlayers([]);
       setLoggedOut();
     }
   }
@@ -930,6 +956,7 @@ export default function WorldcupApp({
         <AppChrome
           title={titleByView[activeView]}
           canGoBack={activeView !== "home"}
+          showAuthControl={activeView !== "play" && activeView !== "lobby"}
           showBrandBar={activeView !== "play" && activeView !== "lobby"}
           authUser={authUser}
           onBack={handleBackToHome}
@@ -960,6 +987,7 @@ export default function WorldcupApp({
         {activeView === "profile" && <ProfileView game={selectedGame} onComplete={handleProfileComplete} />}
         {activeView === "lobby" && (
           <LobbyView
+            currentMemberId={currentMember?.memberId ?? null}
             game={selectedGame}
             roomCode={roomCode ?? initialRoomCode ?? "-----"}
             isCurrentHost={isCurrentHost}
@@ -1208,6 +1236,7 @@ function seedToUnit(seed: number) {
 function AppChrome({
   title,
   canGoBack,
+  showAuthControl = true,
   showBrandBar = true,
   authUser,
   onBack,
@@ -1219,6 +1248,7 @@ function AppChrome({
 }: {
   title: string;
   canGoBack: boolean;
+  showAuthControl?: boolean;
   showBrandBar?: boolean;
   authUser: AuthUser | null;
   onBack: () => void;
@@ -1241,7 +1271,9 @@ function AppChrome({
             <ArrowLeft className="size-4" />
           </button>
           <div className="min-w-0 flex-1 truncate text-center text-xs font-normal tracking-[-0.12px]">{title}</div>
-          <AuthControl authUser={authUser} onLogin={onLogin} onLogout={onLogout} />
+          {showAuthControl && (
+            <AuthControl authUser={authUser} onLogin={onLogin} onLogout={onLogout} />
+          )}
           <button
             aria-label="공유"
             className="grid size-8 place-items-center rounded-full text-white/90 active:scale-95"
