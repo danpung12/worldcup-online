@@ -10,7 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { ChatService } from './chat.service';
 import { UseGuards } from '@nestjs/common';
-import { OptionalJwtAuthGuard } from 'src/auth/guard/optional-jwt-auth.guard';
+import { OptionalJwtSocketAuthGuard } from 'src/auth/guard/optional-jwt-socket-auth.guard';
 
 @WebSocketGateway({
   cors: {
@@ -53,7 +53,7 @@ export class RoomGateway {
   }
 
   //방 생성
-  @UseGuards(OptionalJwtAuthGuard)
+  @UseGuards(OptionalJwtSocketAuthGuard)
   @SubscribeMessage('createRoom')
   async createRoom(
     @MessageBody() body: CreateRoomDto,

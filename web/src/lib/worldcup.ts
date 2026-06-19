@@ -30,6 +30,14 @@ export type BackendWorldcupGame = {
   items: BackendWorldcupItem[];
 };
 
+export type WorldcupComment = {
+  id: number;
+  user_id: number | null;
+  nickname: string;
+  content: string;
+  created_at: string;
+};
+
 export type MyWorldcupGame = {
   id: number;
   title: string;
@@ -64,6 +72,7 @@ export const queryKeys = {
   games: ["worldcup", "games"] as const,
   gameDetail: (gameId: number) => ["worldcup", "game", gameId] as const,
   myGames: ["worldcup", "my-games"] as const,
+  comments: (gameId: number) => ["worldcup", "comments", gameId] as const,
 };
 
 export { apiBaseUrl, socketBaseUrl };
@@ -318,6 +327,53 @@ export async function deleteWorldcupGame(gameId: number) {
 
   if (!response.ok) {
     throw new Error("월드컵을 삭제하지 못했습니다.");
+  }
+}
+
+export async function fetchWorldcupComments(gameId: number) {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/comment/${gameId}`, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("댓글을 불러오지 못했습니다.");
+  }
+
+  return response.json() as Promise<WorldcupComment[]>;
+}
+
+export async function createWorldcupComment(input: {
+  content: string;
+  gameId: number;
+  nickname: string;
+}) {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/comment`, {
+    body: JSON.stringify(input),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error("댓글을 저장하지 못했습니다.");
+  }
+
+  return response.json() as Promise<WorldcupComment>;
+}
+
+export async function deleteWorldcupComment(commentId: number) {
+  const response = await fetchWithAuthRefresh(`${apiBaseUrl}/comment/${commentId}`, {
+    credentials: "include",
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("댓글을 삭제하지 못했습니다.");
   }
 }
 

@@ -4,7 +4,7 @@ import { RoomGateway } from './room.gateway';
 import { PrismaService } from 'prisma/prisma.service';
 import { ChatService } from './chat.service';
 import { JwtModule } from '@nestjs/jwt';
-import { OptionalJwtAuthGuard } from 'src/auth/guard/optional-jwt-auth.guard';
+import { OptionalJwtSocketAuthGuard } from 'src/auth/guard/optional-jwt-socket-auth.guard';
 
 @Module({
   imports: [JwtModule.register({})],
@@ -13,7 +13,7 @@ import { OptionalJwtAuthGuard } from 'src/auth/guard/optional-jwt-auth.guard';
     RoomService,
     PrismaService,
     ChatService,
-    OptionalJwtAuthGuard,
+    OptionalJwtSocketAuthGuard,
   ],
 })
 export class RoomModule {}

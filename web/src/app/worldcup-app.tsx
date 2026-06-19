@@ -1152,7 +1152,13 @@ export default function WorldcupApp({
             onBackToLobby={isSoloMode ? handleBackToHome : () => setView("lobby")}
           />
         )}
-        {activeView === "ranking" && <RankingView game={selectedGame} onJoin={() => handleGameJoin(selectedGame.id)} />}
+        {activeView === "ranking" && (
+          <RankingView
+            authUser={authUser}
+            game={selectedGame}
+            onJoin={() => handleGameJoin(selectedGame.id)}
+          />
+        )}
 
         {activeView !== "play" && activeView !== "lobby" && (
           <LegalFooter onOpenLegalDocument={setOpenLegalDocument} />

@@ -5,9 +5,10 @@ import { UploadModule } from './upload/upload.module';
 import { WorldcupModule } from './worldcup/worldcup.module';
 import { RoomModule } from './room/room.module';
 import { AuthModule } from './auth/auth.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
-  imports: [UploadModule, WorldcupModule, RoomModule, AuthModule],
+  imports: [UploadModule, WorldcupModule, RoomModule, AuthModule, CommentModule],
   controllers: [AppController],
   providers: [AppService],
 })
