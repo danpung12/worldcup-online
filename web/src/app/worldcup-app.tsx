@@ -678,7 +678,6 @@ export default function WorldcupApp({
 
     if (skipRoomRestore) {
       window.history.replaceState(null, "", `/room/${initialRoomCode}`);
-      return;
     }
 
     const roomCodeToRestore: string = initialRoomCode;
@@ -696,6 +695,11 @@ export default function WorldcupApp({
       }
 
       const memberToRestore = storedMember;
+      setRoomMode(getStoredRoomMode(roomCodeToRestore));
+      setCurrentMember({
+        avatar: memberToRestore.avatar ?? getAvatarForName(String(memberToRestore.memberId)),
+        memberId: memberToRestore.memberId,
+      });
 
       try {
         const state = await roomState({

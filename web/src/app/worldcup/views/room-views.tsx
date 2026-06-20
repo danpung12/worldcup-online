@@ -614,12 +614,13 @@ function ChatPanel({
   const chatGroups = messages.reduce<
     Array<{ memberId: number; messages: ChatResponse[] }>
   >((groups, chat) => {
+    const memberId = Number(chat.memberId);
     const lastGroup = groups.at(-1);
 
-    if (lastGroup?.memberId === chat.memberId) {
+    if (lastGroup?.memberId === memberId) {
       lastGroup.messages.push(chat);
     } else {
-      groups.push({ memberId: chat.memberId, messages: [chat] });
+      groups.push({ memberId, messages: [chat] });
     }
 
     return groups;
@@ -652,8 +653,9 @@ function ChatPanel({
         className="min-h-0 flex-1 overflow-y-auto bg-[#fafafc] px-3 py-3 md:px-4 md:py-4"
       >
         {chatGroups.map((group, groupIndex) => {
-          const isOwnGroup = currentMemberId === group.memberId;
-          const player = players.find((currentPlayer) => currentPlayer.id === group.memberId);
+          const isOwnGroup =
+            currentMemberId !== null && Number(currentMemberId) === group.memberId;
+          const player = players.find((currentPlayer) => Number(currentPlayer.id) === group.memberId);
           const lastMessage = group.messages.at(-1);
 
           return (
