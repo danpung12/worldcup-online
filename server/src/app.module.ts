@@ -6,9 +6,10 @@ import { WorldcupModule } from './worldcup/worldcup.module';
 import { RoomModule } from './room/room.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentModule } from './comment/comment.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
-  imports: [UploadModule, WorldcupModule, RoomModule, AuthModule, CommentModule],
+  imports: [UploadModule, WorldcupModule, RoomModule, AuthModule, CommentModule, RedisModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -46,7 +46,7 @@ export class RoomGateway {
 
     this.server.to(body.roomCode).emit('roomUpdate', room);
 
-    const chats = this.chatService.getChats(body.roomCode);
+    const chats = await this.chatService.getChats(body.roomCode);
     client.emit('chatHistory', chats);
 
     return { message: '방에 입장했습니다.', member, room };
@@ -99,11 +99,11 @@ export class RoomGateway {
   }
 
   @SubscribeMessage('sendChat')
-  sendChat(
+  async sendChat(
     @MessageBody() body: { message: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const chat = this.chatService.sendChat(client.data.roomCode, {
+    const chat = await this.chatService.sendChat(client.data.roomCode, {
       memberId: client.data.memberId,
       message: body.message,
       createdAt: new Date(),
@@ -121,7 +121,7 @@ export class RoomGateway {
     client.data.roomCode = body.roomCode;
     client.data.memberId = body.memberId;
 
-    const chats = this.chatService.getChats(body.roomCode);
+    const chats = await this.chatService.getChats(body.roomCode);
     client.emit('chatHistory', chats);
 
     return this.roomService.state(body.memberId, body.roomCode);

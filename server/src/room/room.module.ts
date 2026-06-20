@@ -5,9 +5,10 @@ import { PrismaService } from 'prisma/prisma.service';
 import { ChatService } from './chat.service';
 import { JwtModule } from '@nestjs/jwt';
 import { OptionalJwtSocketAuthGuard } from 'src/auth/guard/optional-jwt-socket-auth.guard';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [JwtModule.register({})],
+  imports: [JwtModule.register({}), RedisModule],
   providers: [
     RoomGateway,
     RoomService,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 
 interface Chat {
   memberId: number;
@@ -9,26 +9,27 @@ interface Chat {
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly redisService: RedisService) {}
 
-  private chatMap = new Map<string, Chat[]>();
+  private getChatKey(roomCode: string) {
+    return `${roomCode}:chats`;
+  }
 
-  sendChat(roomCode: string, chat: Chat) {
-    if (!this.chatMap.has(roomCode)) {
-      this.chatMap.set(roomCode, []);
-    }
-    const chats = this.chatMap.get(roomCode)!;
+  async sendChat(roomCode: string, chat: Chat) {
+    const key = this.getChatKey(roomCode);
 
-    chats.push(chat);
-
-    if (chats.length > 50) {
-      chats.shift();
-    }
+    await this.redisService.redis.rpush(key, JSON.stringify(chat));
+    await this.redisService.redis.ltrim(key, -50, -1);
+    await this.redisService.redis.expire(key, 60 * 60 * 24);
 
     return chat;
   }
 
-  getChats(roomCode: string) {
-    return this.chatMap.get(roomCode) ?? [];
+  async getChats(roomCode: string) {
+    const key = this.getChatKey(roomCode);
+
+    const chats = await this.redisService.redis.lrange(key, 0, -1);
+
+    return chats.map((chat) => JSON.parse(chat));
   }
 }
