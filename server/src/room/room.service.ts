@@ -8,10 +8,18 @@ import {
 import { PrismaService } from 'prisma/prisma.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { v4 } from 'uuid';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class RoomService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
+
+  private getStateKey(roomCode: string) {
+    return `${roomCode}:state`;
+  }
 
   async createRoom(dto: CreateRoomDto, userId?: number) {
     if (userId) {
@@ -24,7 +32,7 @@ export class RoomService {
       if (!loginUser) {
         throw new UnauthorizedException('사용자 정보를 찾을 수 없습니다.');
       }
-      return this.prisma.worldcupRoom.create({
+      const room = await this.prisma.worldcupRoom.create({
         data: {
           game_id: dto.gameId,
           room_code: v4().slice(0, 5),
@@ -41,9 +49,18 @@ export class RoomService {
           member: true,
         },
       });
+
+      await this.redisService.redis.set(
+        this.getStateKey(room.room_code),
+        'WAITING',
+        'EX',
+        60 * 60 * 24,
+      );
+
+      return room;
     }
 
-    return this.prisma.worldcupRoom.create({
+    const room = await this.prisma.worldcupRoom.create({
       data: {
         game_id: dto.gameId,
         room_code: v4().slice(0, 5),
@@ -59,6 +76,15 @@ export class RoomService {
         member: true,
       },
     });
+
+    await this.redisService.redis.set(
+      this.getStateKey(room.room_code),
+      'WAITING',
+      'EX',
+      60 * 60 * 24,
+    );
+
+    return room;
   }
 
   async getRoomByCode(roomCode: string) {
@@ -120,10 +146,12 @@ export class RoomService {
 
     await this.createMatches(room.id, 1, sizeItems);
 
-    await this.prisma.worldcupRoom.update({
-      where: { id: room.id },
-      data: { status: 'PLAYING' },
-    });
+    await this.redisService.redis.set(
+      this.getStateKey(roomCode),
+      'PLAYING',
+      'EX',
+      60 * 60 * 24,
+    );
 
     return this.getCurrentMatch(roomCode);
   }
@@ -392,10 +420,12 @@ export class RoomService {
     const winnerIds = matches.map((match) => match.winner_id!);
 
     if (winnerIds.length === 1) {
-      await this.prisma.worldcupRoom.update({
-        where: { id: match.room_id },
-        data: { status: 'FINISHED' },
-      });
+      await this.redisService.redis.set(
+        this.getStateKey(roomCode),
+        'FINISHED',
+        'EX',
+        60 * 60 * 24,
+      );
       return {
         winnerId: winnerIds[0],
         finished: true,
@@ -512,7 +542,11 @@ export class RoomService {
     let match: any = null;
     let vote: any = null;
 
-    if (member.room.status === 'PLAYING') {
+    const status =
+      (await this.redisService.redis.get(this.getStateKey(roomCode))) ??
+      'WAITING';
+
+    if (status === 'PLAYING') {
       match = await this.getCurrentMatch(roomCode);
 
       vote = await this.prisma.worldcupVote.findUnique({
@@ -530,7 +564,7 @@ export class RoomService {
       member,
       match,
       vote,
-      status: member.room.status,
+      status,
     };
   }
 }

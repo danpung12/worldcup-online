@@ -72,7 +72,6 @@ model WorldcupRoom {
   game    WorldcupGame @relation(fields: [game_id], references: [id], onDelete: Cascade)
 
   room_code String @unique
-  status    String @default("WAITING")
 
   member RoomMember[]
 

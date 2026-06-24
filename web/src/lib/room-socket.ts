@@ -13,7 +13,6 @@ type RoomResponse = {
   game_id?: number;
   room_code: string;
   member: RoomMemberResponse[];
-  status?: string;
 };
 
 type WorldcupItemResponse = {
