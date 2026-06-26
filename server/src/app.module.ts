@@ -7,9 +7,22 @@ import { RoomModule } from './room/room.module';
 import { AuthModule } from './auth/auth.module';
 import { CommentModule } from './comment/comment.module';
 import { RedisModule } from './redis/redis.module';
+import { LoggerModule } from 'nestjs-pino';
 
 @Module({
-  imports: [UploadModule, WorldcupModule, RoomModule, AuthModule, CommentModule, RedisModule],
+  imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+      },
+    }),
+    UploadModule,
+    WorldcupModule,
+    RoomModule,
+    AuthModule,
+    CommentModule,
+    RedisModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

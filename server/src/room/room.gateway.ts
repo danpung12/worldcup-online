@@ -11,6 +11,7 @@ import { CreateRoomDto } from './dto/create-room.dto';
 import { ChatService } from './chat.service';
 import { UseGuards } from '@nestjs/common';
 import { OptionalJwtSocketAuthGuard } from 'src/auth/guard/optional-jwt-socket-auth.guard';
+import { PinoLogger } from 'nestjs-pino';
 
 @WebSocketGateway({
   cors: {
@@ -22,6 +23,7 @@ export class RoomGateway {
   constructor(
     private readonly roomService: RoomService,
     private readonly chatService: ChatService,
+    private readonly logger: PinoLogger,
   ) {}
 
   @WebSocketServer()
@@ -117,6 +119,8 @@ export class RoomGateway {
     @MessageBody() body: { memberId: number; roomCode: string },
     @ConnectedSocket() client: Socket,
   ) {
+    const startTime = performance.now();
+
     client.join(body.roomCode);
     client.data.roomCode = body.roomCode;
     client.data.memberId = body.memberId;
@@ -124,6 +128,15 @@ export class RoomGateway {
     const chats = await this.chatService.getChats(body.roomCode);
     client.emit('chatHistory', chats);
 
-    return this.roomService.state(body.memberId, body.roomCode);
+    const state = await this.roomService.state(body.memberId, body.roomCode);
+
+    this.logger.info({
+      event: 'room_state_restore',
+      durationMs: performance.now() - startTime,
+      saveMode: 'redis-status',
+      status: state.status,
+    });
+
+    return state;
   }
 }
