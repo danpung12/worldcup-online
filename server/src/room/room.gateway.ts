@@ -1,3 +1,4 @@
+import { traceSpan } from 'src/trace-span';
 import {
   ConnectedSocket,
   MessageBody,
@@ -121,22 +122,28 @@ export class RoomGateway {
   ) {
     const startTime = performance.now();
 
-    client.join(body.roomCode);
-    client.data.roomCode = body.roomCode;
-    client.data.memberId = body.memberId;
+    return traceSpan('roomState.restore', async () => {
+      client.join(body.roomCode);
+      client.data.roomCode = body.roomCode;
+      client.data.memberId = body.memberId;
 
-    const chats = await this.chatService.getChats(body.roomCode);
-    client.emit('chatHistory', chats);
+      const chats = await traceSpan('roomState.getChats', () =>
+        this.chatService.getChats(body.roomCode),
+      );
+      client.emit('chatHistory', chats);
 
-    const state = await this.roomService.state(body.memberId, body.roomCode);
+      const state = await traceSpan('roomState.getGameState', () =>
+        this.roomService.state(body.memberId, body.roomCode),
+      );
 
-    this.logger.info({
-      event: 'room_state_restore',
-      durationMs: performance.now() - startTime,
-      saveMode: 'redis-status',
-      status: state.status,
+      this.logger.info({
+        event: 'room_state_restore',
+        durationMs: performance.now() - startTime,
+        saveMode: 'redis-status',
+        status: state.status,
+      });
+
+      return state;
     });
-
-    return state;
   }
 }
