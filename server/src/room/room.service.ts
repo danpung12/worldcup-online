@@ -208,18 +208,31 @@ export class RoomService {
     });
   }
 
-  private tieByMatch = new Map<number, number>();
-
-  private setTie(matchId: number, memberId: number) {
-    this.tieByMatch.set(matchId, memberId);
+  private getTieKey(matchId: number) {
+    return `match:${matchId}:vote-member`;
   }
 
-  private getTie(matchId: number) {
-    return this.tieByMatch.get(matchId);
+  private async setTie(matchId: number, memberId: number) {
+    await this.redisService.redis.set(
+      this.getTieKey(matchId),
+      String(memberId),
+      'EX',
+      60 * 60,
+    );
   }
 
-  private clearTie(matchId: number) {
-    this.tieByMatch.delete(matchId);
+  private async getTie(matchId: number) {
+    const memberId = await this.redisService.redis.get(this.getTieKey(matchId));
+
+    if (memberId === null) {
+      return null;
+    }
+
+    return Number(memberId);
+  }
+
+  private async clearTie(matchId: number) {
+    await this.redisService.redis.del(this.getTieKey(matchId));
   }
 
   // 현재 매치에 투표 저장
@@ -229,7 +242,7 @@ export class RoomService {
   async vote(roomCode: string, selectItemId: number, memberId: number) {
     const match = await this.getCurrentMatch(roomCode);
 
-    const tieMembers = this.getTie(match.id);
+    const tieMembers = await this.getTie(match.id);
 
     if (tieMembers) {
       if (tieMembers !== memberId) {
@@ -244,7 +257,7 @@ export class RoomService {
         },
       });
 
-      this.clearTie(match.id);
+      await this.clearTie(match.id);
       return this.returnNextMatch(roomCode, match, { memberId, selectItemId });
     }
 
@@ -325,7 +338,7 @@ export class RoomService {
           },
         });
         const tieMembers = await this.pickRandomMember(match.room_id);
-        this.setTie(match.id, tieMembers);
+        await this.setTie(match.id, tieMembers);
 
         return {
           match,
