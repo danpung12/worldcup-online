@@ -645,6 +645,8 @@ export default function WorldcupApp({
 
       if (state.status === "PLAYING" && state.match) {
         setCurrentMatch(state.match);
+        setTieBreakerMemberId(state.tieVoteMemberId);
+        setTiePhase(state.tieVoteMemberId === null ? "idle" : "revealed");
         setWinnerId(null);
         setView("play");
         return;
@@ -793,7 +795,7 @@ export default function WorldcupApp({
 
     if (
       tieBreakerMemberId !== null &&
-      (tiePhase !== "decided" || tieBreakerMemberId !== currentMember.memberId)
+      (tiePhase === "spinning" || tieBreakerMemberId !== currentMember.memberId)
     ) {
       return;
     }

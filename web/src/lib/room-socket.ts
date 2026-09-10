@@ -90,6 +90,7 @@ type RoomStateResponse = {
   member: RoomMemberResponse;
   match: MatchResponse | null;
   vote: RoomVoteResponse | null;
+  tieVoteMemberId: number | null;
 };
 
 let socket: Socket | null = null;

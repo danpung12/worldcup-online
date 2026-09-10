@@ -559,8 +559,12 @@ export class RoomService {
       (await this.redisService.redis.get(this.getStateKey(roomCode))) ??
       'WAITING';
 
+    let tieVoteMemberId: any = null;
+
     if (status === 'PLAYING') {
       match = await this.getCurrentMatch(roomCode);
+
+      tieVoteMemberId = await this.getTie(match.id);
 
       vote = await this.prisma.worldcupVote.findUnique({
         where: {
@@ -578,6 +582,7 @@ export class RoomService {
       match,
       vote,
       status,
+      tieVoteMemberId,
     };
   }
 }
