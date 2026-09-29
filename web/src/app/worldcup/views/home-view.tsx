@@ -117,7 +117,7 @@ export function HomeView({
 }
 
 function getPopularValue(game: WorldcupGame) {
-  return game.playCount ?? game.ranking[0]?.votes ?? game.participants;
+  return game.playCount ?? game.ranking[0]?.wins ?? game.participants;
 }
 
 function getLatestValue(game: WorldcupGame) {

@@ -52,7 +52,7 @@ export function RankingView({
                 <div className="min-w-0">
                   <strong className="block truncate text-[17px] font-semibold tracking-[-0.374px]">{rank.name}</strong>
                   <span className="text-[13px] tracking-[-0.12px] text-[#7a7a7a]">
-                    {rank.votes.toLocaleString()}표
+                    {rank.wins.toLocaleString()}회 우승
                   </span>
                 </div>
                 <Expand className="size-4 text-[#7a7a7a]" />

@@ -439,6 +439,17 @@ export class RoomService {
         'EX',
         60 * 60 * 24,
       );
+      await this.prisma.worldcupItem.update({
+        where:{
+          id:winnerIds[0]
+        },
+        data:{
+          wincount:{
+            increment: 1,
+          },
+        }
+      })
+
       return {
         winnerId: winnerIds[0],
         finished: true,

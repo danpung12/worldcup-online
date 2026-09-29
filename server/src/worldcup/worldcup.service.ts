@@ -14,58 +14,6 @@ import {
 export class WorldcupService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async withAutoThumbnails<
-    T extends {
-      id: number;
-      items?: { id: number; image_url: string }[];
-      thumbnail?: string | null;
-    },
-  >(games: T[]) {
-    if (games.length === 0) {
-      return games;
-    }
-
-    const gameIds = games.map((game) => game.id);
-    const votes = await this.prisma.worldcupVote.findMany({
-      where: {
-        select_item: {
-          game_id: {
-            in: gameIds,
-          },
-        },
-      },
-      select: {
-        select_item: {
-          select: {
-            game_id: true,
-            id: true,
-            image_url: true,
-          },
-        },
-      },
-    });
-    const voteCounts = new Map<number, number>();
-    const topItems = new Map<number, { count: number; imageUrl: string }>();
-
-    for (const vote of votes) {
-      const item = vote.select_item;
-      const count = (voteCounts.get(item.id) ?? 0) + 1;
-      voteCounts.set(item.id, count);
-
-      const current = topItems.get(item.game_id);
-
-      if (!current || count > current.count) {
-        topItems.set(item.game_id, { count, imageUrl: item.image_url });
-      }
-    }
-
-    return games.map((game) => ({
-      ...game,
-      thumbnail:
-        topItems.get(game.id)?.imageUrl ?? game.items?.[0]?.image_url ?? null,
-    }));
-  }
-
   private async gameOwner(gameId: number, userId: number) {
     const game = await this.prisma.worldcupGame.findUnique({
       where: { id: gameId },
@@ -92,7 +40,7 @@ export class WorldcupService {
       },
     });
 
-    return (await this.withAutoThumbnails([game]))[0];
+    return game;
   }
 
   async deleteGame(gameId: number, userId: number) {
@@ -131,7 +79,7 @@ export class WorldcupService {
     if (!game) {
       throw new NotFoundException('월드컵을 찾을 수 없습니다.');
     }
-    return (await this.withAutoThumbnails([game]))[0];
+    return game;
   }
 
   async getGames() {
@@ -148,7 +96,7 @@ export class WorldcupService {
       },
     });
 
-    return this.withAutoThumbnails(games);
+    return games;
   }
 
   async createItem(gameId: number, dto: CreateItemDto, userId: number) {
@@ -209,6 +157,6 @@ export class WorldcupService {
       orderBy: { updated_at: 'desc' },
     });
 
-    return this.withAutoThumbnails(games);
+    return games;
   }
 }

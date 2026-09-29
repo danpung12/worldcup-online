@@ -11,13 +11,14 @@ export type WorldcupGame = {
   updatedAtTime?: number;
   imageUrl: string;
   candidates: string[];
-  ranking: Array<{ imageUrl: string; name: string; votes: number }>;
+  ranking: Array<{ imageUrl: string; name: string; wins: number }>;
 };
 
 export type BackendWorldcupItem = {
   id: number;
   name: string;
   image_url: string;
+  wincount: number;
 };
 
 export type BackendWorldcupGame = {
@@ -88,13 +89,13 @@ export const mockGames: WorldcupGame[] = [
     participants: 128,
     rounds: 128,
     updatedAt: "오늘 업데이트",
-    imageUrl: imageUrl("photo-1516280440614-37939bbacd81"),
+    imageUrl: imageUrl("photo-1494790108377-be9c29b29330"),
     candidates: ["카리나", "설윤", "장원영", "해린"],
     ranking: [
-      { imageUrl: imageUrl("photo-1494790108377-be9c29b29330"), name: "카리나", votes: 18420 },
-      { imageUrl: imageUrl("photo-1502823403499-6ccfcf4fb453"), name: "장원영", votes: 16210 },
-      { imageUrl: imageUrl("photo-1534528741775-53994a69daeb"), name: "설윤", votes: 14889 },
-      { imageUrl: imageUrl("photo-1524504388940-b1c1722653e1"), name: "해린", votes: 12750 },
+      { imageUrl: imageUrl("photo-1494790108377-be9c29b29330"), name: "카리나", wins: 0 },
+      { imageUrl: imageUrl("photo-1534528741775-53994a69daeb"), name: "설윤", wins: 0 },
+      { imageUrl: imageUrl("photo-1502823403499-6ccfcf4fb453"), name: "장원영", wins: 0 },
+      { imageUrl: imageUrl("photo-1524504388940-b1c1722653e1"), name: "해린", wins: 0 },
     ],
   },
   {
@@ -104,13 +105,13 @@ export const mockGames: WorldcupGame[] = [
     participants: 64,
     rounds: 64,
     updatedAt: "2시간 전",
-    imageUrl: imageUrl("photo-1543353071-10c8ba85a904"),
+    imageUrl: imageUrl("photo-1569718212165-3a8278d5f624"),
     candidates: ["떡볶이", "치킨", "초밥", "마라탕"],
     ranking: [
-      { imageUrl: imageUrl("photo-1569718212165-3a8278d5f624"), name: "떡볶이", votes: 9210 },
-      { imageUrl: imageUrl("photo-1562967914-608f82629710"), name: "치킨", votes: 8940 },
-      { imageUrl: imageUrl("photo-1579871494447-9811cf80d66c"), name: "초밥", votes: 7102 },
-      { imageUrl: imageUrl("photo-1569718212165-3a8278d5f624"), name: "마라탕", votes: 6881 },
+      { imageUrl: imageUrl("photo-1569718212165-3a8278d5f624"), name: "떡볶이", wins: 0 },
+      { imageUrl: imageUrl("photo-1562967914-608f82629710"), name: "치킨", wins: 0 },
+      { imageUrl: imageUrl("photo-1579871494447-9811cf80d66c"), name: "초밥", wins: 0 },
+      { imageUrl: imageUrl("photo-1569718212165-3a8278d5f624"), name: "마라탕", wins: 0 },
     ],
   },
   {
@@ -120,13 +121,13 @@ export const mockGames: WorldcupGame[] = [
     participants: 32,
     rounds: 32,
     updatedAt: "어제",
-    imageUrl: imageUrl("photo-1507525428034-b723cf961d3e"),
+    imageUrl: imageUrl("photo-1513415277900-a62401e19be4"),
     candidates: ["삿포로", "다낭", "파리", "제주"],
     ranking: [
-      { imageUrl: imageUrl("photo-1513415277900-a62401e19be4"), name: "삿포로", votes: 6410 },
-      { imageUrl: imageUrl("photo-1500530855697-b586d89ba3ee"), name: "제주", votes: 5982 },
-      { imageUrl: imageUrl("photo-1507525428034-b723cf961d3e"), name: "다낭", votes: 5440 },
-      { imageUrl: imageUrl("photo-1502602898657-3e91760cbb34"), name: "파리", votes: 5112 },
+      { imageUrl: imageUrl("photo-1513415277900-a62401e19be4"), name: "삿포로", wins: 0 },
+      { imageUrl: imageUrl("photo-1507525428034-b723cf961d3e"), name: "다낭", wins: 0 },
+      { imageUrl: imageUrl("photo-1502602898657-3e91760cbb34"), name: "파리", wins: 0 },
+      { imageUrl: imageUrl("photo-1500530855697-b586d89ba3ee"), name: "제주", wins: 0 },
     ],
   },
   {
@@ -139,10 +140,10 @@ export const mockGames: WorldcupGame[] = [
     imageUrl: imageUrl("photo-1612036782180-6f0b6cd846fe"),
     candidates: ["마린", "카오루코", "아냐", "미쿠"],
     ranking: [
-      { imageUrl: imageUrl("photo-1612036782180-6f0b6cd846fe"), name: "마린", votes: 12844 },
-      { imageUrl: imageUrl("photo-1613376023733-0a73315d9b06"), name: "미쿠", votes: 12110 },
-      { imageUrl: imageUrl("photo-1618331835717-801e976710b2"), name: "아냐", votes: 11720 },
-      { imageUrl: imageUrl("photo-1601850494422-3cf14624b0b3"), name: "카오루코", votes: 10290 },
+      { imageUrl: imageUrl("photo-1612036782180-6f0b6cd846fe"), name: "마린", wins: 0 },
+      { imageUrl: imageUrl("photo-1601850494422-3cf14624b0b3"), name: "카오루코", wins: 0 },
+      { imageUrl: imageUrl("photo-1618331835717-801e976710b2"), name: "아냐", wins: 0 },
+      { imageUrl: imageUrl("photo-1613376023733-0a73315d9b06"), name: "미쿠", wins: 0 },
     ],
   },
 ];
@@ -180,7 +181,14 @@ export async function fetchMyWorldcupGames() {
     throw new Error("내 월드컵 목록을 불러오지 못했습니다.");
   }
 
-  return response.json() as Promise<MyWorldcupGame[]>;
+  const games = (await response.json()) as Array<
+    MyWorldcupGame & { items: BackendWorldcupItem[] }
+  >;
+
+  return games.map(({ items, ...game }) => ({
+    ...game,
+    thumbnail: rankWorldcupItems(items)[0]?.image_url ?? null,
+  }));
 }
 
 export async function fetchWorldcupGameDetail(gameId: number) {
@@ -378,9 +386,9 @@ export async function deleteWorldcupComment(commentId: number) {
 }
 
 function mapBackendGame(game: BackendWorldcupGame): WorldcupGame {
+  const rankedItems = rankWorldcupItems(game.items);
   const imageUrl =
-    game.thumbnail ??
-    game.items[0]?.image_url ??
+    rankedItems[0]?.image_url ??
     "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=80";
 
   return {
@@ -394,12 +402,18 @@ function mapBackendGame(game: BackendWorldcupGame): WorldcupGame {
     updatedAtTime: new Date(game.updated_at).getTime(),
     imageUrl,
     candidates: game.items.map((item) => item.name),
-    ranking: game.items.slice(0, 4).map((item, index) => ({
+    ranking: rankedItems.map((item) => ({
       imageUrl: item.image_url,
       name: item.name,
-      votes: Math.max(game.play_count - index * 7, 0),
+      wins: item.wincount ?? 0,
     })),
   };
+}
+
+function rankWorldcupItems(items: BackendWorldcupItem[]) {
+  return [...items].sort(
+    (a, b) => (b.wincount ?? 0) - (a.wincount ?? 0) || a.id - b.id,
+  );
 }
 
 function formatUpdatedAt(value: string) {
