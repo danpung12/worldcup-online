@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CommentModule } from './comment/comment.module';
 import { RedisModule } from './redis/redis.module';
 import { LoggerModule } from 'nestjs-pino';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { LoggerModule } from 'nestjs-pino';
     AuthModule,
     CommentModule,
     RedisModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

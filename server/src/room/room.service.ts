@@ -9,6 +9,7 @@ import { PrismaService } from 'prisma/prisma.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { v4 } from 'uuid';
 import { RedisService } from 'src/redis/redis.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class RoomService {
@@ -440,15 +441,15 @@ export class RoomService {
         60 * 60 * 24,
       );
       await this.prisma.worldcupItem.update({
-        where:{
-          id:winnerIds[0]
+        where: {
+          id: winnerIds[0],
         },
-        data:{
-          wincount:{
+        data: {
+          wincount: {
             increment: 1,
           },
-        }
-      })
+        },
+      });
 
       return {
         winnerId: winnerIds[0],
@@ -595,5 +596,15 @@ export class RoomService {
       status,
       tieVoteMemberId,
     };
+  }
+
+  // 하루 된 게임방 정리 코드.
+  @Cron('0 0 * * * *')
+  async roomClean() {
+    const cleantime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    await this.prisma.worldcupRoom.deleteMany({
+      where: { created_at: { lt: cleantime } },
+    });
   }
 }
