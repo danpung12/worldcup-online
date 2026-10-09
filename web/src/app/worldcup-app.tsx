@@ -8,13 +8,9 @@ import {
   useState,
 } from "react";
 import {
-  ArrowLeft,
   Loader2,
-  LogOut,
   Play,
-  Share2,
   Trophy,
-  UserRound,
   X,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,9 +43,13 @@ import { useAuthStore } from "@/store/auth-store";
 import { type AppView, type Player, useWorldcupStore } from "@/store/worldcup-store";
 import { CreateView } from "./worldcup/views/create-view";
 import { HomeView } from "./worldcup/views/home-view";
+import { HomeHeader } from "./worldcup/views/home-header";
+import homeStyles from "./worldcup/views/home.module.css";
 import { getAvatarForName, ProfileView } from "./worldcup/views/profile-view";
 import { RankingView } from "./worldcup/views/ranking-view";
 import { getDefaultRoundSize, LobbyView, PlayView, ResultView } from "./worldcup/views/room-views";
+import { getConfirmedMatchWinner } from "./worldcup/views/match-winner";
+import { useMatchReveal } from "./worldcup/views/use-match-reveal";
 
 type WorldcupAppProps = {
   initialGameId?: number;
@@ -85,7 +85,7 @@ const legalDocuments: Record<
       {
         heading: "서비스의 성격",
         body: [
-          "Worldcup Online은 이용자가 이상형 월드컵을 만들고, 참여하고, 친구와 함께 실시간으로 즐길 수 있는 콘텐츠 제작·공유 서비스입니다.",
+          "픽온(PickOn)은 이용자가 이상형 월드컵을 만들고, 참여하고, 친구와 함께 실시간으로 즐길 수 있는 콘텐츠 제작·공유 서비스입니다.",
           "서비스에 표시되는 외부 출처의 이미지, 텍스트, 상표, 인물명, 작품명 등은 각 원저작자와 권리자의 정책 및 권리를 따릅니다.",
         ],
       },
@@ -170,7 +170,7 @@ const legalDocuments: Record<
       {
         heading: "기본 원칙",
         body: [
-          "Worldcup Online은 재미있는 취향 공유를 위한 서비스이며, 타인의 권리와 안전을 해치지 않는 콘텐츠를 지향합니다.",
+          "픽온(PickOn)은 재미있는 취향 공유를 위한 서비스이며, 타인의 권리와 안전을 해치지 않는 콘텐츠를 지향합니다.",
           "음식, 장소, 사물 등 일반 콘텐츠는 권리 문제가 없는 이미지 사용을 권장합니다.",
           "인물 콘텐츠는 저작권뿐 아니라 초상권, 퍼블리시티권, 명예훼손 이슈가 함께 발생할 수 있으므로 특히 신중하게 등록해야 합니다.",
         ],
@@ -326,7 +326,12 @@ export default function WorldcupApp({
 }: WorldcupAppProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: games = mockGames, isError: hasGamesError } = useQuery({
+  const {
+    data: games = mockGames,
+    isError: hasGamesError,
+    isPlaceholderData: isGamesPlaceholder,
+    isFetching: isGamesFetching,
+  } = useQuery({
     queryKey: queryKeys.games,
     queryFn: fetchWorldcupGames,
     placeholderData: mockGames,
@@ -350,6 +355,7 @@ export default function WorldcupApp({
     memberId: number;
   } | null>(null);
   const [currentMatch, setCurrentMatch] = useState<MatchResponse | null>(null);
+  const { reveal: matchReveal, revealWinner, clearReveal } = useMatchReveal();
   const [winnerId, setWinnerId] = useState<number | null>(null);
   const [gameNotice, setGameNotice] = useState<string | null>(null);
   const [activeRoundSize, setActiveRoundSize] = useState<number | null>(null);
@@ -482,6 +488,17 @@ export default function WorldcupApp({
 
   const applyGameUpdate = useCallback(
     (update: GameUpdateResponse) => {
+      const confirmedWinner = getConfirmedMatchWinner({
+        match: currentMatch,
+        update,
+        soloVoteItemId: roomMode === "solo" && players.length === 1
+          ? pendingVoteItemIdRef.current ?? selectedItemId
+          : null,
+        tieBreakerMemberId,
+      });
+      if (currentMatch && confirmedWinner !== null) {
+        revealWinner(currentMatch, confirmedWinner);
+      }
       setIsStarting(false);
       setIsVoting(false);
 
@@ -608,6 +625,12 @@ export default function WorldcupApp({
       clearNextMatchTimer,
       clearTieDecisionTimer,
       currentMember?.memberId,
+      currentMatch,
+      players.length,
+      revealWinner,
+      roomMode,
+      selectedItemId,
+      tieBreakerMemberId,
       resetTieBreaker,
       setView,
     ],
@@ -615,6 +638,7 @@ export default function WorldcupApp({
 
   const applyRoomState = useCallback(
     (state: RoomStateResponse) => {
+      clearReveal();
       const memberContext = {
         avatar: state.member.avatar ?? getAvatarForName(state.member.nickname),
         memberId: state.member.id,
@@ -665,6 +689,7 @@ export default function WorldcupApp({
     },
     [
       clearNextMatchTimer,
+      clearReveal,
       enterLobby,
       resetTieBreaker,
       selectGame,
@@ -768,6 +793,7 @@ export default function WorldcupApp({
   }, [currentMember, setPlayers]);
 
   const handleStartGame = useCallback((roundSize?: number) => {
+    clearReveal();
     clearNextMatchTimer();
     resetTieBreaker();
     setGameNotice(null);
@@ -779,10 +805,10 @@ export default function WorldcupApp({
     setActiveRoundSize(roundSize ?? selectedGame.participants);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
-  }, [clearNextMatchTimer, resetTieBreaker, selectedGame.participants]);
+  }, [clearNextMatchTimer, clearReveal, resetTieBreaker, selectedGame.participants]);
 
   async function handleVote(selectItemId: number) {
-    if (!currentMember) {
+    if (!currentMember || matchReveal) {
       return;
     }
 
@@ -833,6 +859,7 @@ export default function WorldcupApp({
   }
 
   function handleBackToHome() {
+    clearReveal();
     clearNextMatchTimer();
     resetTieBreaker();
     setView("home");
@@ -1078,17 +1105,19 @@ export default function WorldcupApp({
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
-      <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#f5f5f7] md:max-w-none">
-        <AppChrome
-          title={titleByView[activeView]}
-          canGoBack={activeView !== "home"}
-          showAuthControl={activeView !== "play" && activeView !== "lobby"}
-          showBrandBar={activeView !== "play" && activeView !== "lobby"}
+    <main
+      className={homeStyles.shell}
+    >
+      <div
+        className="min-h-screen w-full"
+      >
+        <HomeHeader
           authUser={authUser}
-          onBack={handleBackToHome}
-          onCreate={handleCreateClick}
+          onBack={activeView === "home" ? undefined : handleBackToHome}
+          title={titleByView[activeView]}
+          compact={activeView === "play" || activeView === "lobby" || (activeView === "result" && Boolean(matchReveal))}
           onHome={handleBackToHome}
+          onCreate={handleCreateClick}
           onLogin={handleLogin}
           onLogout={handleLogout}
           onShare={handleShareHomeUrl}
@@ -1098,6 +1127,7 @@ export default function WorldcupApp({
           <HomeView
             games={games}
             hasBackendError={hasGamesError}
+            isLoading={isGamesPlaceholder && isGamesFetching}
             onJoin={handleGameJoin}
             onRanking={(id) => {
               router.push(`/ranking/${id}`);
@@ -1132,25 +1162,26 @@ export default function WorldcupApp({
             onStart={handleStartGame}
           />
         )}
-        {activeView === "play" && currentMatch && (
+        {(activeView === "play" || (activeView === "result" && matchReveal)) && currentMatch && (
           <PlayView
-            isVoting={isVoting}
+            isVoting={isVoting || Boolean(matchReveal)}
+            revealedWinnerId={matchReveal?.winnerId ?? null}
             activeRoundSize={activeRoundSize ?? getDefaultRoundSize(selectedGame.participants) ?? selectedGame.participants}
             isSoloMode={isSoloMode}
             messages={chatMessages}
-            match={currentMatch}
-            notice={gameNotice}
+            match={matchReveal?.match ?? currentMatch}
+            notice={matchReveal ? null : gameNotice}
             onSendChat={isSoloMode ? () => undefined : handleSendChat}
             onVote={handleVote}
             players={players}
-            selectedItemId={selectedItemId}
+            selectedItemId={matchReveal?.winnerId ?? selectedItemId}
             currentMemberId={currentMember?.memberId ?? null}
-            tieBreakerMemberId={tieBreakerMemberId}
+            tieBreakerMemberId={matchReveal ? null : tieBreakerMemberId}
             tiePhase={tiePhase}
             voteStamps={isSoloMode ? [] : voteStamps}
           />
         )}
-        {activeView === "result" && (
+        {activeView === "result" && !matchReveal && (
           <ResultView
             actionLabel={isSoloMode ? "홈으로" : "로비로"}
             match={currentMatch}
@@ -1166,7 +1197,7 @@ export default function WorldcupApp({
           />
         )}
 
-        {activeView !== "play" && activeView !== "lobby" && (
+        {activeView !== "play" && activeView !== "lobby" && !(activeView === "result" && matchReveal) && (
           <LegalFooter onOpenLegalDocument={setOpenLegalDocument} />
         )}
 
@@ -1210,16 +1241,16 @@ export default function WorldcupApp({
 
 function RoomRestoreLoading() {
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f]">
-      <section className="mx-auto flex min-h-screen w-full max-w-[430px] items-center justify-center bg-[#f5f5f7] px-4 py-10 md:max-w-none">
-        <div className="w-full max-w-[360px] rounded-[18px] border border-[#e0e0e0] bg-white px-5 py-6 text-center">
-          <div className="mx-auto grid size-11 place-items-center rounded-full bg-[#0066cc] text-white">
+    <main className="min-h-screen bg-[#f1f6f9] text-[#25343e]">
+      <section className="mx-auto flex min-h-screen w-full max-w-[430px] items-center justify-center bg-[#f1f6f9] px-4 py-10 md:max-w-none">
+        <div className="w-full max-w-[360px] rounded-[18px] border border-[#e2e9ed] bg-white px-5 py-6 text-center">
+          <div className="mx-auto grid size-11 place-items-center rounded-xl bg-[#dceef7] text-[#245a7a]">
             <Loader2 className="size-5 animate-spin" aria-hidden="true" />
           </div>
           <h1 className="mt-5 text-[21px] font-semibold leading-[1.19] tracking-[0.231px]">
             게임으로 돌아가는 중
           </h1>
-          <p className="mt-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#6e6e73]">
+          <p className="mt-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
             네트워크 연결이 끊겼거나 새로고침된 경우에도 이어서 참여할 수 있도록 현재 상태를 확인하고 있습니다.
           </p>
         </div>
@@ -1249,18 +1280,18 @@ function SoloStartModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/38 px-4 backdrop-blur-sm">
-      <section className="w-full max-w-[390px] rounded-[18px] border border-[#e0e0e0] bg-white px-5 py-5 md:max-w-[560px] md:px-7 md:py-7">
+      <section className="w-full max-w-[390px] rounded-[18px] border border-[#e2e9ed] bg-white px-5 py-5 md:max-w-[560px] md:px-7 md:py-7">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
               혼자 시작하기
             </p>
-            <h2 className="mt-1 line-clamp-2 text-[28px] font-semibold leading-[1.12] tracking-[-0.374px] text-[#1d1d1f] md:text-[34px]">
+            <h2 className="mt-1 line-clamp-2 text-[28px] font-semibold leading-[1.12] tracking-[-0.374px] text-[#25343e] md:text-[34px]">
               {game.title}
             </h2>
           </div>
           <button
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[#333333] active:scale-95 disabled:opacity-50"
+            className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#f1f6f9] text-[#425563] active:scale-95 disabled:opacity-50"
             type="button"
             aria-label="혼자 시작 닫기"
             disabled={isStarting}
@@ -1270,17 +1301,17 @@ function SoloStartModal({
           </button>
         </div>
 
-        <div className="mt-5 rounded-[18px] bg-[#f5f5f7] px-4 py-4">
+        <div className="mt-5 rounded-[18px] bg-[#f1f6f9] px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#1d1d1f]">
+              <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#25343e]">
                 라운드 선택
               </p>
-              <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
+              <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#63727c]">
                 후보 {game.participants.toLocaleString()}개 중 몇 강으로 시작할지 고르세요.
               </p>
             </div>
-            <Trophy className="size-5 shrink-0 text-[#0066cc]" />
+            <Trophy className="size-5 shrink-0 text-[#27729b]" />
           </div>
 
           {roundOptions.length > 0 ? (
@@ -1288,10 +1319,10 @@ function SoloStartModal({
               {roundOptions.map((roundSize) => (
                 <button
                   key={roundSize}
-                  className={`h-11 rounded-full border text-[15px] tracking-[-0.224px] active:scale-95 ${
+                  className={`h-11 rounded-xl border text-[15px] tracking-[-0.224px] active:scale-95 ${
                     selectedRoundSize === roundSize
-                      ? "border-[#0066cc] bg-[#0066cc] text-white"
-                      : "border-[#d2d2d7] bg-white text-[#1d1d1f]"
+                      ? "border-[#27729b] bg-[#dceef7] text-[#245a7a]"
+                      : "border-[#dce5eb] bg-white text-[#25343e]"
                   }`}
                   type="button"
                   disabled={isStarting}
@@ -1302,7 +1333,7 @@ function SoloStartModal({
               ))}
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl bg-white px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+            <div className="mt-4 rounded-2xl bg-white px-4 py-4 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
               후보가 8개 미만이라 전체 후보로 시작합니다.
             </div>
           )}
@@ -1315,7 +1346,7 @@ function SoloStartModal({
         )}
 
         <button
-          className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 disabled:bg-[#8bbbe8] md:h-14"
+          className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#dceef7] text-[17px] tracking-[-0.374px] text-[#245a7a] active:scale-95 disabled:bg-[#afcfe0] md:h-14"
           type="button"
           disabled={isStarting}
           onClick={() => onStart(selectedRoundSize)}
@@ -1323,7 +1354,7 @@ function SoloStartModal({
           {isStarting ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
-            <Play className="size-4 fill-white" />
+            <Play className="size-4 fill-current" />
           )}
           {isStarting ? "시작 중" : startLabel}
         </button>
@@ -1497,139 +1528,6 @@ function seedToUnit(seed: number) {
 
 
 
-function AppChrome({
-  title,
-  canGoBack,
-  showAuthControl = true,
-  showBrandBar = true,
-  authUser,
-  onBack,
-  onCreate,
-  onHome,
-  onLogin,
-  onLogout,
-  onShare,
-}: {
-  title: string;
-  canGoBack: boolean;
-  showAuthControl?: boolean;
-  showBrandBar?: boolean;
-  authUser: AuthUser | null;
-  onBack: () => void;
-  onCreate: () => void;
-  onHome: () => void;
-  onLogin: () => void;
-  onLogout: () => void;
-  onShare: () => void;
-}) {
-  return (
-    <>
-      <header className="bg-black text-white">
-        <div className="mx-auto flex h-11 w-full max-w-[1180px] items-center justify-between gap-2 px-4 md:px-8">
-          <button
-            aria-label="뒤로"
-            className={`grid size-8 place-items-center rounded-full text-white/90 ${canGoBack ? "" : "invisible"}`}
-            type="button"
-            onClick={onBack}
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-          <div className="min-w-0 flex-1 truncate text-center text-xs font-normal tracking-[-0.12px]">{title}</div>
-          {showAuthControl && (
-            <AuthControl authUser={authUser} onLogin={onLogin} onLogout={onLogout} />
-          )}
-          <button
-            aria-label="공유"
-            className="grid size-8 place-items-center rounded-full text-white/90 active:scale-95"
-            type="button"
-            onClick={onShare}
-          >
-            <Share2 className="size-4" />
-          </button>
-        </div>
-      </header>
-      {showBrandBar && (
-        <div className="sticky top-0 z-10 h-[52px] border-b border-black/5 bg-[#f5f5f7]/90 backdrop-blur-xl">
-          <div className="mx-auto flex h-full w-full max-w-[1180px] items-center justify-between px-4 md:px-8">
-            <button
-              className="text-[21px] font-semibold leading-none tracking-[0.231px] active:scale-[0.99]"
-              type="button"
-              onClick={onHome}
-            >
-              Worldcup
-            </button>
-            <button
-              className="rounded-full bg-[#0066cc] px-[18px] py-[9px] text-[14px] font-normal tracking-[-0.224px] text-white active:scale-95"
-              type="button"
-              onClick={onCreate}
-            >
-              만들기
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function AuthControl({
-  authUser,
-  onLogin,
-  onLogout,
-}: {
-  authUser: AuthUser | null;
-  onLogin: () => void;
-  onLogout: () => void;
-}) {
-  if (authUser) {
-    return (
-      <div className="flex h-8 min-w-0 max-w-[132px] items-center rounded-full bg-white/10 pl-2 pr-1 text-white sm:max-w-[170px]">
-        <UserRound className="size-4 shrink-0 text-white/90" />
-        <span className="ml-1.5 max-w-[64px] truncate text-xs tracking-[-0.12px] text-white/90 sm:max-w-[92px]">
-          {authUser.nickname}
-        </span>
-        <button
-          aria-label="로그아웃"
-          className="ml-1 grid size-6 shrink-0 place-items-center rounded-full text-white/80 active:scale-95"
-          type="button"
-          onClick={onLogout}
-        >
-          <LogOut className="size-3.5" />
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      aria-label="카카오 로그인"
-      className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#FEE500] px-2.5 text-xs font-semibold text-black/85 shadow-sm ring-1 ring-black/5 active:scale-95 sm:px-3"
-      type="button"
-      onClick={onLogin}
-    >
-      <KakaoSymbol className="size-3.5 shrink-0 text-black" />
-      <span className="hidden sm:inline">카카오 로그인</span>
-      <span className="sm:hidden">로그인</span>
-    </button>
-  );
-}
-
-function KakaoSymbol({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <path
-        d="M12 4C6.48 4 2 7.45 2 11.7c0 2.72 1.84 5.12 4.62 6.48l-.72 2.62c-.1.37.32.66.64.45l3.17-2.08c.73.11 1.5.17 2.29.17 5.52 0 10-3.45 10-7.7C22 7.45 17.52 4 12 4Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 function LegalFooter({
   onOpenLegalDocument,
 }: {
@@ -1643,14 +1541,14 @@ function LegalFooter({
   ];
 
   return (
-    <footer className="border-t border-black/5 bg-[#f5f5f7] px-5 py-8 text-[#333333] md:px-8 md:py-10">
+    <footer className="border-t border-black/5 bg-[#f1f6f9] px-5 py-8 text-[#425563] md:px-8 md:py-10">
       <div className="mx-auto max-w-[1180px]">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-10">
           <div>
             <p className="text-[14px] font-semibold leading-[1.29] tracking-[-0.224px]">
-              Worldcup Online
+              PickOn · 픽온
             </p>
-            <p className="mt-2 max-w-[620px] text-[12px] leading-[1.55] tracking-[-0.12px] text-[#7a7a7a]">
+            <p className="mt-2 max-w-[620px] text-[12px] leading-[1.55] tracking-[-0.12px] text-[#63727c]">
               친구와 함께 취향을 고르고, 직접 만든 월드컵을 공유하는 온라인 이상형 월드컵 서비스입니다.
               이용자가 등록한 콘텐츠는 각 권리자의 권리를 존중해야 하며, 신고 접수 시 운영정책에 따라 조치될 수 있습니다.
             </p>
@@ -1661,7 +1559,7 @@ function LegalFooter({
               {legalLinks.map((link) => (
                 <span key={link.key} className="flex items-center gap-x-2">
                   <button
-                    className="text-[#555555] underline-offset-4 transition hover:text-[#1d1d1f] hover:underline active:scale-[0.98]"
+                    className="text-[#555555] underline-offset-4 transition hover:text-[#25343e] hover:underline active:scale-[0.98]"
                     type="button"
                     onClick={() => onOpenLegalDocument(link.key)}
                   >
@@ -1674,8 +1572,8 @@ function LegalFooter({
           </nav>
         </div>
 
-        <div className="mt-7 border-t border-black/10 pt-4 text-[12px] leading-[1.45] tracking-[-0.12px] text-[#8a8a8e] md:flex md:items-center md:justify-between md:gap-4">
-          <p>© 2026 Worldcup Online. All rights reserved.</p>
+        <div className="mt-7 border-t border-black/10 pt-4 text-[12px] leading-[1.45] tracking-[-0.12px] text-[#6d7e89] md:flex md:items-center md:justify-between md:gap-4">
+          <p>© 2026 PickOn. All rights reserved.</p>
           <p className="mt-2 md:mt-0">권리침해 문의: aass6863@naver.com</p>
         </div>
       </div>
@@ -1695,12 +1593,12 @@ function LegalModal({
       <section
         aria-labelledby="legal-modal-title"
         aria-modal="true"
-        className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[18px] bg-white text-[#1d1d1f] md:max-w-[720px] md:rounded-[18px]"
+        className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[18px] bg-white text-[#25343e] md:max-w-[720px] md:rounded-[18px]"
         role="dialog"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[#f0f0f0] px-5 py-5 md:px-7">
+        <div className="flex items-start justify-between gap-4 border-b border-[#edf1f4] px-5 py-5 md:px-7">
           <div>
-            <p className="text-[12px] leading-none tracking-[-0.12px] text-[#7a7a7a]">
+            <p className="text-[12px] leading-none tracking-[-0.12px] text-[#63727c]">
               시행일 {document.effectiveDate}
             </p>
             <h2
@@ -1712,7 +1610,7 @@ function LegalModal({
           </div>
           <button
             aria-label="닫기"
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[#333333] active:scale-95"
+            className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#f1f6f9] text-[#425563] active:scale-95"
             type="button"
             onClick={onClose}
           >
@@ -1727,7 +1625,7 @@ function LegalModal({
                 <h3 className="text-[17px] font-semibold leading-[1.24] tracking-[-0.374px]">
                   {section.heading}
                 </h3>
-                <div className="mt-2 grid gap-2 text-[15px] leading-[1.55] tracking-[-0.224px] text-[#333333]">
+                <div className="mt-2 grid gap-2 text-[15px] leading-[1.55] tracking-[-0.224px] text-[#425563]">
                   {section.body.map((paragraph) => (
                     <p key={paragraph}>{paragraph}</p>
                   ))}
@@ -1737,9 +1635,9 @@ function LegalModal({
           </div>
         </div>
 
-        <div className="border-t border-[#f0f0f0] px-5 py-4 md:px-7">
+        <div className="border-t border-[#edf1f4] px-5 py-4 md:px-7">
           <button
-            className="h-11 w-full rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95"
+            className="h-11 w-full rounded-xl bg-[#dceef7] text-[17px] tracking-[-0.374px] text-[#245a7a] active:scale-95"
             type="button"
             onClick={onClose}
           >
@@ -1766,23 +1664,23 @@ function LoginRequiredModal({
         role="dialog"
       >
         <div className="px-5 pb-5 pt-6">
-          <h2 className="text-[21px] font-semibold leading-[1.19] tracking-[0.231px] text-[#1d1d1f]">
+          <h2 className="text-[21px] font-semibold leading-[1.19] tracking-[0.231px] text-[#25343e]">
             로그인이 필요합니다.
           </h2>
-          <p className="mt-2 text-[15px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+          <p className="mt-2 text-[15px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
             로그인 하시겠습니까?
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-px border-t border-[#f0f0f0] bg-[#f0f0f0]">
+        <div className="grid grid-cols-2 gap-px border-t border-[#edf1f4] bg-[#edf1f4]">
           <button
-            className="h-12 bg-white text-[17px] tracking-[-0.374px] text-[#7a7a7a] active:scale-95"
+            className="h-12 bg-white text-[17px] tracking-[-0.374px] text-[#63727c] active:scale-95"
             type="button"
             onClick={onCancel}
           >
             아니요
           </button>
           <button
-            className="h-12 bg-white text-[17px] font-semibold tracking-[-0.374px] text-[#0066cc] active:scale-95"
+            className="h-12 bg-white text-[17px] font-semibold tracking-[-0.374px] text-[#27729b] active:scale-95"
             type="button"
             onClick={onConfirm}
           >
@@ -1797,16 +1695,12 @@ function LoginRequiredModal({
 function AppToast({ message }: { message: string }) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 md:bottom-8">
-      <div className="rounded-full bg-[#1d1d1f] px-5 py-3 text-[14px] leading-none tracking-[-0.224px] text-white">
+      <div className="rounded-xl bg-[#25343e] px-5 py-3 text-[14px] leading-none tracking-[-0.224px] text-white">
         {message}
       </div>
     </div>
   );
 }
-
-
-
-
 
 
 

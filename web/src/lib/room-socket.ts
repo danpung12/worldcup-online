@@ -34,6 +34,7 @@ type MatchResponse = {
 
 type GameUpdateResponse =
   | MatchResponse
+  | { status: "winner"; winnerId: number }
   | {
       status: "voting";
       vote?: {

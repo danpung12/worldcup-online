@@ -1,7 +1,17 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
-import { Expand, Loader2, MessageCircle, Play, Send, Trash2 } from "lucide-react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  BarChart3,
+  Expand,
+  Loader2,
+  MessageCircle,
+  Play,
+  Send,
+  Trash2,
+  Trophy,
+  X,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "@/lib/auth";
 import {
@@ -13,6 +23,8 @@ import {
   type WorldcupGame,
 } from "@/lib/worldcup";
 import { ExpandedMedia, MediaPreview } from "./media-preview";
+import { PageIntro } from "./pickon-ui";
+import ui from "./pickon-ui.module.css";
 
 export function RankingView({
   authUser,
@@ -23,81 +35,127 @@ export function RankingView({
   game: WorldcupGame;
   onJoin: () => void;
 }) {
-  const [expandedRank, setExpandedRank] = useState<WorldcupGame["ranking"][number] | null>(null);
+  const [expandedRank, setExpandedRank] = useState<
+    WorldcupGame["ranking"][number] | null
+  >(null);
+  const hasNoWins =
+    game.ranking.length > 0 && game.ranking.every((rank) => rank.wins === 0);
 
   return (
-    <>
-      <section className="pb-8">
-        <div className="bg-[#272729] px-5 pb-8 pt-8 text-white md:px-8 md:pb-12 md:pt-14">
-          <div className="mx-auto max-w-[960px]">
-            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#cccccc]">랭킹보기</p>
-            <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[48px] md:leading-[1.08]">{game.title}</h1>
-          </div>
+    <section className={ui.page}>
+      <PageIntro
+        label={
+          <>
+            <BarChart3 size={15} aria-hidden="true" /> 우승 랭킹
+          </>
+        }
+        title={game.title}
+        description={
+          hasNoWins
+            ? "첫 우승의 주인공은 누가 될까요?"
+            : "마지막까지 선택받은 후보들을 만나보세요."
+        }
+      />
+      <div className={ui.content}>
+        <div className={ui.rankingSummary}>
+          <h2 className={ui.sectionLabel}>
+            전체 순위 <span>{game.ranking.length}</span>
+          </h2>
+          <p>최종 우승 횟수 기준 · 후보를 누르면 크게 볼 수 있어요.</p>
         </div>
-        <div className="mx-auto max-w-[960px] px-4 py-4 md:px-8 md:py-6">
-          <div className="overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
-            {game.ranking.map((rank, index) => (
-              <button
-                key={rank.name}
-                className="grid w-full grid-cols-[36px_56px_1fr_auto] items-center gap-3 border-b border-[#f0f0f0] px-4 py-3 text-left last:border-b-0 active:bg-[#f5f5f7] md:grid-cols-[56px_76px_1fr_auto] md:px-6 md:py-4"
-                type="button"
-                onClick={() => setExpandedRank(rank)}
-              >
-                <span className="text-[14px] font-semibold tracking-[-0.224px] text-[#7a7a7a]">#{index + 1}</span>
-                <MediaPreview
-                  alt={`${rank.name} 랭킹 이미지`}
-                  className="size-14 rounded-xl md:size-[76px]"
-                  src={rank.imageUrl}
-                />
-                <div className="min-w-0">
-                  <strong className="block truncate text-[17px] font-semibold tracking-[-0.374px]">{rank.name}</strong>
-                  <span className="text-[13px] tracking-[-0.12px] text-[#7a7a7a]">
-                    {rank.wins.toLocaleString()}회 우승
-                  </span>
-                </div>
-                <Expand className="size-4 text-[#7a7a7a]" />
-              </button>
-            ))}
-            <div className="border-t border-[#f0f0f0] bg-white px-4 py-4 md:flex md:items-center md:justify-between md:gap-4 md:px-6">
-              <p className="hidden text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a] md:block">
-                친구와 함께 이 월드컵을 바로 시작할 수 있습니다.
-              </p>
-              <button
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[17px] tracking-[-0.374px] text-white active:scale-95 md:w-[260px]"
-                type="button"
-                onClick={onJoin}
-              >
-                <Play className="size-4 fill-white" />
-                함께하기
-              </button>
-            </div>
-          </div>
-
-          <CommentSection
-            key={`${game.id}:${authUser?.id ?? "guest"}:${authUser?.nickname ?? "익명"}`}
-            authUser={authUser}
-            gameId={game.id}
-          />
+        {hasNoWins && (
+          <p className={ui.rankingNotice}>
+            <Trophy size={16} aria-hidden="true" />
+            아직 우승 기록이 없어요. 게임을 끝내면 우승 횟수가 반영돼요.
+          </p>
+        )}
+        <div className={`${ui.surface} ${ui.rankingList}`}>
+          {game.ranking.length === 0 && (
+            <p className={ui.empty}>아직 등록된 후보가 없습니다.</p>
+          )}
+          {game.ranking.map((rank, index) => (
+            <button
+              key={`${rank.name}-${index}`}
+              className={`${ui.rankRow} ${index === 0 && rank.wins > 0 ? ui.rankLeader : ""}`}
+              type="button"
+              aria-label={`${index + 1}위 ${rank.name}, ${rank.wins}회 우승, 크게 보기`}
+              onClick={() => setExpandedRank(rank)}
+            >
+              <span className={ui.rankNumber}>
+                {index === 0 && rank.wins > 0 && <Trophy aria-hidden="true" />}
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <MediaPreview
+                alt={`${rank.name} 랭킹 이미지`}
+                className={ui.rankImage}
+                src={rank.imageUrl}
+              />
+              <strong className={ui.rankName} title={rank.name}>
+                {rank.name}
+              </strong>
+              <span className={ui.rankWins}>
+                <strong>{rank.wins.toLocaleString()}</strong>
+                <span>회 우승</span>
+              </span>
+              <Expand size={15} className="text-[#71838e]" aria-hidden="true" />
+            </button>
+          ))}
         </div>
-      </section>
-
+        <div className={ui.rankingCta}>
+          <div>
+            <strong>나의 1위는 누구일까요?</strong>
+            <p>친구와 함께 고르고, 취향을 나눠보세요.</p>
+          </div>
+          <button className={ui.primary} type="button" onClick={onJoin}>
+            <Play size={15} aria-hidden="true" /> 함께하기
+          </button>
+        </div>
+        <CommentSection
+          key={`${game.id}:${authUser?.id ?? "guest"}:${authUser?.nickname ?? "익명"}`}
+          authUser={authUser}
+          gameId={game.id}
+        />
+      </div>
       {expandedRank && (
-        <button
-          className="fixed inset-0 z-50 grid place-items-center bg-black/72 px-5"
-          type="button"
-          aria-label="랭킹 이미지 닫기"
-          onClick={() => setExpandedRank(null)}
-        >
-          <div className="w-full max-w-[390px] overflow-hidden rounded-[18px] bg-white text-left md:max-w-[720px]">
-            <ExpandedMedia alt={`${expandedRank.name} 확대 미디어`} src={expandedRank.imageUrl} />
-            <div className="px-4 py-4">
-              <p className="text-[13px] tracking-[-0.12px] text-[#7a7a7a]">이미지를 누르면 닫힙니다.</p>
-              <strong className="mt-1 block text-[21px] font-semibold tracking-[0.231px]">{expandedRank.name}</strong>
-            </div>
-          </div>
-        </button>
+        <RankMediaDialog
+          rank={expandedRank}
+          onClose={() => setExpandedRank(null)}
+        />
       )}
-    </>
+    </section>
+  );
+}
+
+function RankMediaDialog({
+  rank,
+  onClose,
+}: {
+  rank: WorldcupGame["ranking"][number];
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={dialogRef}
+      className={ui.mediaDialog}
+      aria-labelledby="rank-media-title"
+      onClose={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className={ui.mediaDialogHeader}>
+        <h2 id="rank-media-title">{rank.name}</h2>
+        <button type="button" onClick={onClose} aria-label="랭킹 이미지 닫기">
+          <X size={18} />
+        </button>
+      </div>
+      <ExpandedMedia alt={`${rank.name} 확대 미디어`} src={rank.imageUrl} />
+    </dialog>
   );
 }
 
@@ -109,12 +167,19 @@ function CommentSection({
   gameId: number;
 }) {
   const queryClient = useQueryClient();
-  const defaultNickname = useMemo(() => authUser?.nickname ?? "익명", [authUser?.nickname]);
+  const defaultNickname = useMemo(
+    () => authUser?.nickname ?? "익명",
+    [authUser?.nickname],
+  );
   const [nickname, setNickname] = useState(defaultNickname);
   const [content, setContent] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { data: comments = [], isError, isLoading } = useQuery({
+  const {
+    data: comments = [],
+    isError,
+    isLoading,
+  } = useQuery({
     queryKey: queryKeys.comments(gameId),
     queryFn: () => fetchWorldcupComments(gameId),
     retry: false,
@@ -129,12 +194,14 @@ function CommentSection({
         nickname,
       }),
     onError: () => {
-      setErrorMessage("댓글을 저장하지 못했습니다.");
+      setErrorMessage("댓글을 등록하지 못했습니다.");
     },
     onSuccess: () => {
       setContent("");
       setErrorMessage(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.comments(gameId) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.comments(gameId),
+      });
     },
   });
 
@@ -145,7 +212,9 @@ function CommentSection({
     },
     onSuccess: () => {
       setErrorMessage(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.comments(gameId) });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.comments(gameId),
+      });
     },
   });
 
@@ -161,18 +230,18 @@ function CommentSection({
   };
 
   return (
-    <section className="mt-5 overflow-hidden rounded-[18px] border border-[#e0e0e0] bg-white">
-      <div className="border-b border-[#f0f0f0] px-4 py-4 md:px-6 md:py-5">
+    <section className="mt-5 overflow-hidden rounded-[18px] border border-[#e2e9ed] bg-white">
+      <div className="border-b border-[#edf1f4] px-4 py-4 md:px-6 md:py-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[#0066cc]">
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#f1f6f9] text-[#27729b]">
               <MessageCircle className="size-4" />
             </span>
             <div className="min-w-0">
-              <h2 className="text-[21px] font-semibold leading-[1.19] tracking-[0.231px] text-[#1d1d1f]">
+              <h2 className="text-[21px] font-semibold leading-[1.19] tracking-[0.231px] text-[#25343e]">
                 유저 의견
               </h2>
-              <p className="mt-0.5 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#7a7a7a]">
+              <p className="mt-0.5 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#63727c]">
                 {comments.length.toLocaleString()}개의 댓글
               </p>
             </div>
@@ -180,34 +249,35 @@ function CommentSection({
         </div>
 
         <form className="mt-4 grid gap-2" onSubmit={handleSubmit}>
-          <label className="flex h-11 items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-4 focus-within:border-[#0066cc]">
-            <span className="shrink-0 text-[12px] font-semibold leading-none tracking-[-0.12px] text-[#8a8a8e]">
+          <label className="flex h-11 items-center gap-2 rounded-xl border border-[#dce5eb] bg-white px-4 focus-within:border-[#27729b]">
+            <span className="shrink-0 text-[12px] font-semibold leading-none tracking-[-0.12px] text-[#6d7e89]">
               닉네임
             </span>
             <input
-              className="h-full min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-[-0.224px] text-[#1d1d1f] outline-none placeholder:text-[#8a8a8e]"
+              className="h-full min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-[-0.224px] text-[#25343e] outline-none placeholder:text-[#6d7e89]"
               maxLength={20}
               placeholder="익명"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
             />
           </label>
-          <div className="rounded-[18px] border border-[#d2d2d7] bg-white focus-within:border-[#0066cc]">
+          <div className="rounded-[18px] border border-[#dce5eb] bg-white focus-within:border-[#27729b]">
             <textarea
-              className="min-h-[92px] w-full resize-none rounded-[18px] bg-white px-4 py-3 text-[15px] leading-[1.5] tracking-[-0.224px] text-[#1d1d1f] outline-none placeholder:text-[#8a8a8e]"
+              aria-label="댓글 내용"
+              className="min-h-[92px] w-full resize-none rounded-[18px] bg-white px-4 py-3 text-[15px] leading-[1.5] tracking-[-0.224px] text-[#25343e] outline-none placeholder:text-[#6d7e89]"
               maxLength={300}
               placeholder="한마디 남기기"
               value={content}
               onChange={(event) => setContent(event.target.value)}
             />
-            <div className="flex items-center justify-between gap-3 border-t border-[#f0f0f0] px-4 pb-3 pt-2">
-              <span className="text-[12px] leading-none tracking-[-0.12px] text-[#8a8a8e]">
+            <div className="flex items-center justify-between gap-3 border-t border-[#edf1f4] px-4 pb-3 pt-2">
+              <span className="text-[12px] leading-none tracking-[-0.12px] text-[#6d7e89]">
                 {content.length}/300
               </span>
             </div>
           </div>
           <button
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0066cc] text-[15px] font-semibold tracking-[-0.224px] text-white active:scale-95 disabled:bg-[#8bbbe8] md:ml-auto md:w-[132px]"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#dceef7] text-[15px] font-semibold tracking-[-0.224px] text-[#245a7a] active:scale-95 disabled:bg-[#afcfe0] md:ml-auto md:w-[132px]"
             type="submit"
             disabled={createMutation.isPending}
           >
@@ -216,7 +286,7 @@ function CommentSection({
             ) : (
               <Send className="size-4" />
             )}
-            저장
+            {createMutation.isPending ? "등록 중" : "댓글 등록"}
           </button>
           {errorMessage && (
             <p className="mt-2 rounded-2xl bg-[#fff8ef] px-4 py-3 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#8a4b00]">
@@ -228,18 +298,18 @@ function CommentSection({
 
       <div>
         {isLoading && (
-          <div className="flex items-center justify-center gap-2 px-4 py-8 text-[14px] tracking-[-0.224px] text-[#7a7a7a]">
+          <div className="flex items-center justify-center gap-2 px-4 py-8 text-[14px] tracking-[-0.224px] text-[#63727c]">
             <Loader2 className="size-4 animate-spin" />
             댓글 불러오는 중
           </div>
         )}
         {isError && (
-          <div className="px-4 py-8 text-center text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+          <div className="px-4 py-8 text-center text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
             댓글을 불러오지 못했습니다.
           </div>
         )}
         {!isLoading && !isError && comments.length === 0 && (
-          <div className="px-4 py-8 text-center text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
+          <div className="px-4 py-8 text-center text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
             아직 댓글이 없습니다.
           </div>
         )}
@@ -273,24 +343,24 @@ function CommentRow({
   const canDelete = Boolean(authUser?.id && comment.user_id === authUser.id);
 
   return (
-    <article className="border-t border-[#f0f0f0] px-4 py-4 md:px-6">
+    <article className="border-t border-[#edf1f4] px-4 py-4 md:px-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <strong className="max-w-[180px] truncate text-[15px] font-semibold leading-[1.29] tracking-[-0.224px] text-[#1d1d1f]">
+            <strong className="max-w-[180px] truncate text-[15px] font-semibold leading-[1.29] tracking-[-0.224px] text-[#25343e]">
               {comment.nickname}
             </strong>
-            <time className="text-[12px] leading-none tracking-[-0.12px] text-[#8a8a8e]">
+            <time className="text-[12px] leading-none tracking-[-0.12px] text-[#6d7e89]">
               {formatCommentDate(comment.created_at)}
             </time>
           </div>
-          <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.55] tracking-[-0.224px] text-[#333333]">
+          <p className="mt-2 whitespace-pre-wrap break-words text-[15px] leading-[1.55] tracking-[-0.224px] text-[#425563]">
             {comment.content}
           </p>
         </div>
         {canDelete && (
           <button
-            className="grid size-9 shrink-0 place-items-center rounded-full bg-[#f5f5f7] text-[#7a7a7a] active:scale-95 disabled:opacity-50"
+            className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#f1f6f9] text-[#63727c] active:scale-95 disabled:opacity-50"
             type="button"
             aria-label="댓글 삭제"
             disabled={isDeleting}

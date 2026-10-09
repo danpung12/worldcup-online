@@ -1,25 +1,35 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
-import { BarChart3, Play, Search, Users } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  BarChart3,
+  ChevronRight,
+  ImageIcon,
+  Layers3,
+  Play,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 import type { WorldcupGame } from "@/lib/worldcup";
-import { MediaPreview } from "./media-preview";
+import styles from "./home.module.css";
 
 type HomeSortMode = "popular" | "latest";
-const applePrimaryPillClass =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-[#0066cc] px-4 text-[14px] font-normal tracking-[-0.224px] text-white active:scale-95 disabled:bg-[#8bbbe8] md:h-11 md:gap-2 md:px-[22px] md:text-[17px] md:tracking-[-0.374px]";
-const appleSecondaryPillClass =
-  "inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-[#0066cc] bg-white px-4 text-[14px] font-normal tracking-[-0.224px] text-[#0066cc] active:scale-95 disabled:text-[#8bbbe8] md:h-11 md:gap-2 md:px-[22px] md:text-[17px] md:tracking-[-0.374px]";
 
 export function HomeView({
   games,
   hasBackendError,
+  isLoading = false,
   onJoin,
   onRanking,
   onStart,
 }: {
   games: WorldcupGame[];
   hasBackendError: boolean;
+  isLoading?: boolean;
   onJoin: (id: number) => void;
   onRanking: (id: number) => void;
   onStart: (id: number) => void;
@@ -50,67 +60,150 @@ export function HomeView({
     });
 
   return (
-    <section className="pb-8">
-      <div className="bg-white px-5 pb-7 pt-8 md:px-8 md:pb-14 md:pt-16">
-        <div className="mx-auto max-w-[1180px]">
-          <div className="md:mx-auto md:max-w-[760px] md:text-center">
-            <p className="text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a] md:text-[17px]">
-              친구와 같이 고르는
-            </p>
-            <h1 className="mt-1 text-[34px] font-semibold leading-[1.08] tracking-[-0.374px] md:text-[56px] md:leading-[1.07] md:tracking-[-0.28px]">
-              온라인 이상형 월드컵
-            </h1>
-            <label className="mt-6 flex h-11 items-center gap-2 rounded-full border border-black/10 bg-white px-4 text-[17px] tracking-[-0.374px] md:mx-auto md:h-12 md:max-w-[520px]">
-              <Search className="size-4 text-[#7a7a7a]" />
-              <input
-                className="min-w-0 flex-1 bg-transparent text-left outline-none placeholder:text-[#7a7a7a]"
-                placeholder="월드컵 검색"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-            </label>
-          </div>
+    <section className={styles.home} aria-label="월드컵 둘러보기">
+      <div className={styles.hero}>
+        <div className={styles.heroShapes} aria-hidden="true">
+          <span className={styles.heroCircle} />
+          <span className={styles.heroArc} />
+          <span className={styles.heroCardFront} />
+        </div>
+        <div className={`${styles.container} ${styles.heroContent}`}>
+          <h1>
+            좋아하는 것들 사이,
+            <br />
+            <span>나만의 1위</span>를 골라봐.
+          </h1>
+          <p className={styles.heroDescription}>
+            혼자 즐겨도, 친구와 함께해도.
+          </p>
         </div>
       </div>
 
-      {hasBackendError && (
-        <div className="px-4 pt-4">
-          <div className="rounded-2xl border border-[#ffd4a3] bg-[#fff8ef] px-4 py-3 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#8a4b00]">
-            백엔드에 연결하지 못해서 임시 목록을 보여주는 중입니다.
-          </div>
+      <div
+        className={`${styles.container} ${styles.catalog}`}
+        id="worldcup-list"
+      >
+        <div className={styles.catalogHeading}>
+          <h2>어떤 월드컵을 해볼까요?</h2>
         </div>
-      )}
-
-      <div className="mx-auto flex max-w-[1180px] gap-2 overflow-x-auto px-4 py-4 md:px-8 md:pt-5">
-        {sortFilters.map((filter) => (
-          <button
-            key={filter.value}
-            className={`h-9 shrink-0 rounded-full px-4 text-[14px] tracking-[-0.224px] active:scale-95 ${
-              sortMode === filter.value ? "bg-[#1d1d1f] text-white" : "bg-white text-[#333333]"
-            }`}
-            type="button"
-            onClick={() => setSortMode(filter.value)}
+        <div className={styles.toolbar}>
+          <div className={styles.searchBox} role="search">
+            <Search size={19} aria-hidden="true" />
+            <input
+              aria-label="월드컵 검색"
+              type="search"
+              placeholder="어떤 취향을 찾고 있나요?"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className={styles.clearSearch}
+                aria-label="검색어 지우기"
+                onClick={() => setSearchQuery("")}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          <div
+            className={styles.sortFilters}
+            role="group"
+            aria-label="월드컵 정렬"
           >
-            {filter.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mx-auto grid max-w-[1180px] gap-3 px-3 md:grid-cols-2 md:gap-5 md:px-8 lg:grid-cols-3">
-        {visibleGames.map((game) => (
-          <GameCard
-            key={game.id}
-            game={game}
-            onJoin={() => onJoin(game.id)}
-            onRanking={() => onRanking(game.id)}
-            onStart={() => onStart(game.id)}
-          />
-        ))}
-        {visibleGames.length === 0 && (
-          <div className="rounded-[18px] border border-[#e0e0e0] bg-white px-4 py-8 text-center text-[15px] tracking-[-0.224px] text-[#7a7a7a]">
-            검색 결과가 없습니다.
+            {sortFilters.map((filter) => (
+              <button
+                key={filter.value}
+                aria-pressed={sortMode === filter.value}
+                className={
+                  sortMode === filter.value
+                    ? styles.sortActive
+                    : styles.sortButton
+                }
+                type="button"
+                onClick={() => setSortMode(filter.value)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {hasBackendError && (
+          <div className={styles.errorNotice} role="status">
+            <AlertCircle size={18} aria-hidden="true" />
+            <p>
+              목록을 불러오지 못해 예시 월드컵을 보여드려요. 실제 플레이는 서버
+              연결 후 이용할 수 있어요.
+            </p>
           </div>
         )}
+        <p className={styles.resultCount} role="status" aria-live="polite">
+          {isLoading ? (
+            "월드컵을 불러오고 있어요"
+          ) : (
+            <>
+              {normalizedSearchQuery
+                ? "검색 결과"
+                : hasBackendError
+                  ? "예시 월드컵"
+                  : "전체 월드컵"}{" "}
+              <strong>{visibleGames.length}</strong>
+            </>
+          )}
+        </p>
+        <div className={styles.grid} aria-busy={isLoading}>
+          {isLoading
+            ? Array.from({ length: 3 }, (_, index) => (
+                <div
+                  className={styles.skeletonCard}
+                  key={index}
+                  aria-hidden="true"
+                >
+                  <div className={styles.skeletonImage} />
+                  <div className={styles.skeletonBody}>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              ))
+            : visibleGames.map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  onJoin={() => onJoin(game.id)}
+                  onRanking={() => onRanking(game.id)}
+                  onStart={() => onStart(game.id)}
+                />
+              ))}
+          {!isLoading && visibleGames.length === 0 && (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}>
+                <Search size={28} aria-hidden="true" />
+              </span>
+              <h3>
+                {normalizedSearchQuery
+                  ? "아직 찾는 월드컵이 없어요"
+                  : "첫 번째 월드컵을 기다리고 있어요"}
+              </h3>
+              <p>
+                {normalizedSearchQuery
+                  ? "다른 검색어로 새로운 취향을 찾아보세요."
+                  : "상단의 만들기 버튼으로 나만의 월드컵을 시작해 보세요."}
+              </p>
+              {normalizedSearchQuery && (
+                <button
+                  className={styles.emptyReset}
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                >
+                  전체 월드컵 보기 <ChevronRight size={16} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -121,7 +214,9 @@ function getPopularValue(game: WorldcupGame) {
 }
 
 function getLatestValue(game: WorldcupGame) {
-  return Number.isFinite(game.updatedAtTime) ? (game.updatedAtTime ?? 0) : game.id;
+  return Number.isFinite(game.updatedAtTime)
+    ? (game.updatedAtTime ?? 0)
+    : game.id;
 }
 
 function GameCard({
@@ -136,65 +231,82 @@ function GameCard({
   onStart: () => void;
 }) {
   return (
-    <article className="grid grid-cols-[104px_1fr] gap-4 rounded-[18px] border border-[#e0e0e0] bg-white p-4 md:flex md:min-h-full md:flex-col md:gap-0 md:overflow-hidden md:p-0">
-      <div className="shrink-0 bg-[#fafafc] md:p-3">
-        <MediaPreview
-          alt={`${game.title} 대표 이미지`}
-          className="size-[104px] rounded-lg shadow-[2px_4px_18px_rgba(0,0,0,0.18)] md:aspect-[16/11] md:size-auto md:w-full md:shadow-[3px_5px_30px_rgba(0,0,0,0.18)]"
+    <article
+      className={styles.gameCard}
+      aria-labelledby={`home-game-${game.id}`}
+    >
+      <div className={styles.cardMedia}>
+        <HomeThumbnail
+          key={game.imageUrl}
           src={game.imageUrl}
+          title={game.title}
         />
+        <span className={styles.roundBadge}>{game.rounds}강</span>
       </div>
-      <div className="flex min-w-0 flex-1 flex-col pt-0 md:px-5 md:pb-5 md:pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="line-clamp-2 text-[18px] font-semibold leading-[1.2] tracking-[-0.12px] md:text-[19px] md:leading-[1.22] md:tracking-[-0.374px]">
-              {game.title}
-            </h2>
-            <p className="mt-1 line-clamp-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#7a7a7a]">
-              {game.description}
-            </p>
-          </div>
-          <span className="hidden shrink-0 rounded-full bg-[#f5f5f7] px-2.5 py-1 text-[12px] text-[#333333] sm:inline-block">
-            {game.rounds}강
+      <div className={styles.cardBody}>
+        <h3 id={`home-game-${game.id}`} title={game.title}>
+          {game.title}
+        </h3>
+        <p className={styles.cardDescription}>{game.description}</p>
+        <div className={styles.cardMeta}>
+          <span>
+            <Layers3 size={14} aria-hidden="true" /> 후보{" "}
+            {game.participants.toLocaleString()}개
           </span>
-        </div>
-
-        <div className="mt-2 flex items-center justify-between gap-2 md:mt-3">
-          <div className="flex min-w-0 items-center gap-2 text-[12px] tracking-[-0.12px] text-[#7a7a7a]">
-            <Users className="size-3.5 shrink-0" />
-            <span className="shrink-0">{game.participants.toLocaleString()} 후보</span>
-            <span className="shrink-0">·</span>
-            <span className="truncate">{game.updatedAt}</span>
-          </div>
           <button
-            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-1 text-[12px] tracking-[-0.12px] text-[#0066cc] active:scale-95 md:text-[13px]"
+            className={styles.rankingButton}
             type="button"
+            aria-label={`${game.title} 랭킹 보기`}
             onClick={onRanking}
           >
-            <BarChart3 className="size-3.5 shrink-0" />
-            랭킹보기
+            <BarChart3 size={14} aria-hidden="true" /> 랭킹
           </button>
         </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-1.5 md:mt-auto md:gap-2 md:pt-5">
-          <button
-            className={`${applePrimaryPillClass} min-w-0 whitespace-nowrap !h-9 !gap-1 !px-2 !text-[12px] !leading-none !tracking-[-0.12px] md:!h-11 md:!gap-2 md:!px-[22px] md:!text-[17px] md:!tracking-[-0.374px]`}
-            type="button"
-            onClick={onStart}
-          >
-            <Play className="size-3 shrink-0 fill-white md:size-4" />
-            시작하기
+        <div className={styles.cardActions}>
+          <button className={styles.soloButton} type="button" onClick={onStart}>
+            <Play size={15} aria-hidden="true" /> 혼자 하기
           </button>
-          <button
-            className={`${appleSecondaryPillClass} min-w-0 whitespace-nowrap !h-9 !gap-1 !px-2 !text-[12px] !leading-none !tracking-[-0.12px] md:!h-11 md:!gap-2 md:!px-[22px] md:!text-[17px] md:!tracking-[-0.374px]`}
-            type="button"
-            onClick={onJoin}
-          >
-            <Users className="size-3 shrink-0 md:size-4" />
-            함께하기
+          <button className={styles.joinButton} type="button" onClick={onJoin}>
+            <Users size={16} aria-hidden="true" /> 함께하기{" "}
+            <ArrowUpRight size={15} aria-hidden="true" />
           </button>
         </div>
       </div>
     </article>
+  );
+}
+
+// 홈에서는 영상도 대표 썸네일만 표시하고, 재생 UI는 기존 게임 화면에 둡니다.
+function HomeThumbnail({ src, title }: { src: string; title: string }) {
+  const [hasError, setHasError] = useState(false);
+  const videoId = src.match(
+    /(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{6,})/,
+  )?.[1];
+  const thumbnail = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : src;
+
+  if (!thumbnail || hasError) {
+    return (
+      <div
+        className={styles.imageFallback}
+        role="img"
+        aria-label={`${title} 대표 이미지 없음`}
+      >
+        <ImageIcon size={30} aria-hidden="true" />
+        <span>이미지를 준비하고 있어요</span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      alt={`${title} 대표 이미지`}
+      src={thumbnail}
+      fill
+      sizes="(max-width: 639px) calc(100vw - 40px), (max-width: 1023px) calc((100vw - 72px) / 2), 370px"
+      className={styles.thumbnail}
+      onError={() => setHasError(true)}
+    />
   );
 }

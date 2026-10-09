@@ -14,8 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Worldcup Online",
-  description: "친구들과 링크로 즐기는 실시간 월드컵",
+  title: "픽온(PickOn) — 함께 고르는 이상형 월드컵",
+  description:
+    "Pick Online, 픽온. 혼자 또는 친구들과 함께 취향을 고르는 실시간 이상형 월드컵.",
+  icons: { icon: "/pickon.svg" },
 };
 
 export default function RootLayout({

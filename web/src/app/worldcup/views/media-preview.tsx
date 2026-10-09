@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { Play } from "lucide-react";
+import { useState } from "react";
+import { ImageOff, Play } from "lucide-react";
 
 function getYouTubeId(url: string) {
-  const match = url.match(/(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{6,})/);
+  const match = url.match(
+    /(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{6,})/,
+  );
 
   return match?.[1] ?? null;
 }
@@ -12,18 +15,26 @@ function getYouTubeId(url: string) {
 export function MediaPreview({
   alt,
   className,
+  fit = "cover",
   isPlaying = false,
   onPlay,
+  playControl = "overlay",
   src,
 }: {
   alt: string;
   className: string;
+  fit?: "cover" | "contain";
   isPlaying?: boolean;
   onPlay?: () => void;
+  playControl?: "overlay" | "corner";
   src: string;
 }) {
   const videoId = getYouTubeId(src);
-  const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+  const thumbnail = videoId
+    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+    : null;
+  const imageSrc = thumbnail ?? src;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   if (videoId && isPlaying) {
     return (
@@ -40,40 +51,63 @@ export function MediaPreview({
   }
 
   return (
-    <div className={`relative overflow-hidden ${className}`}>
-      <Image
-        alt={alt}
-        className="size-full object-cover"
-        height={520}
-        src={thumbnail ?? src}
-        width={820}
-      />
-      {thumbnail && (
+    <div className={`relative overflow-hidden bg-[#edf3f6] ${className}`}>
+      {!imageSrc || failedSrc === imageSrc ? (
+        <div
+          className="grid size-full place-content-center justify-items-center gap-2 text-[#63727c]"
+          role="img"
+          aria-label={`${alt} 없음`}
+        >
+          <ImageOff size={24} strokeWidth={1.5} aria-hidden="true" />
+        </div>
+      ) : (
+        <Image
+          alt={alt}
+          className={`size-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+          height={520}
+          src={imageSrc}
+          onError={() => setFailedSrc(imageSrc)}
+          width={820}
+        />
+      )}
+      {thumbnail && onPlay && (
         <button
           aria-label={`${alt} 재생`}
-          className="absolute inset-0 z-20 grid place-items-center bg-black/10"
+          className={
+            playControl === "corner"
+              ? "absolute left-3 top-3 z-20 inline-flex min-h-10 items-center gap-2 rounded-full border border-white/20 bg-[#18212a]/90 px-3 text-[13px] font-semibold text-white"
+              : "absolute inset-0 z-20 grid place-items-center bg-black/10"
+          }
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             onPlay?.();
           }}
         >
-          <span className="grid size-11 place-items-center rounded-full bg-white/95 text-[#0066cc] shadow-sm">
-            <Play className="ml-0.5 size-5 fill-[#0066cc]" />
-          </span>
+          {playControl === "corner" ? (
+            <>
+              <Play size={14} aria-hidden="true" /> 영상 재생
+            </>
+          ) : (
+            <span className="grid size-11 place-items-center rounded-full bg-white/95 text-[#27729b] shadow-sm">
+              <Play className="ml-0.5 size-5 fill-current" />
+            </span>
+          )}
         </button>
+      )}
+      {thumbnail && !onPlay && (
+        <span
+          className="pointer-events-none absolute inset-0 grid place-items-center bg-black/10"
+          aria-hidden="true"
+        >
+          <Play className="size-5 fill-white text-white" />
+        </span>
       )}
     </div>
   );
 }
 
-export function ExpandedMedia({
-  alt,
-  src,
-}: {
-  alt: string;
-  src: string;
-}) {
+export function ExpandedMedia({ alt, src }: { alt: string; src: string }) {
   const videoId = getYouTubeId(src);
 
   if (videoId) {
@@ -98,4 +132,3 @@ export function ExpandedMedia({
     />
   );
 }
-
