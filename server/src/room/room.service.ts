@@ -446,12 +446,25 @@ export class RoomService {
         });
 
         if (result.count === 1) {
+          const gameId = await tx.worldcupRoom.findUniqueOrThrow({
+            where: { id: match.room_id },
+            select: { game_id: true },
+          });
           await tx.worldcupItem.update({
             where: {
               id: winnerIds[0],
             },
             data: {
               wincount: {
+                increment: 1,
+              },
+            },
+          });
+
+          await tx.worldcupGame.update({
+            where: { id: gameId.game_id },
+            data: {
+              play_count: {
                 increment: 1,
               },
             },
