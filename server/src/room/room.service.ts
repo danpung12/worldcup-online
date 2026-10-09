@@ -434,22 +434,36 @@ export class RoomService {
     const winnerIds = matches.map((match) => match.winner_id!);
 
     if (winnerIds.length === 1) {
+      await this.prisma.$transaction(async (tx) => {
+        const result = await tx.worldcupRoom.updateMany({
+          where: {
+            id: match.room_id,
+            winner_counted: false,
+          },
+          data: {
+            winner_counted: true,
+          },
+        });
+
+        if (result.count === 1) {
+          await tx.worldcupItem.update({
+            where: {
+              id: winnerIds[0],
+            },
+            data: {
+              wincount: {
+                increment: 1,
+              },
+            },
+          });
+        }
+      });
       await this.redisService.redis.set(
         this.getStateKey(roomCode),
         'FINISHED',
         'EX',
         60 * 60 * 24,
       );
-      await this.prisma.worldcupItem.update({
-        where: {
-          id: winnerIds[0],
-        },
-        data: {
-          wincount: {
-            increment: 1,
-          },
-        },
-      });
 
       return {
         winnerId: winnerIds[0],
