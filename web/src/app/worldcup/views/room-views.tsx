@@ -391,7 +391,7 @@ export function PlayView({
   const isTieVoteLocked = isTieActive && (isTieSpinning || !isTieBreaker);
   const voteDisabled = isVoting || isTieVoteLocked || revealedWinnerId !== null;
   const isWaitingForOthers =
-    selectedItemId !== null && !isVoting && revealedWinnerId === null;
+    !isSoloMode && selectedItemId !== null && !isVoting && revealedWinnerId === null;
   const revealedWinner =
     revealedWinnerId === match.item_a_id
       ? match.item_a
@@ -428,7 +428,9 @@ export function PlayView({
             <span className={ui.playHint}>
               {isVoting
                 ? "선택을 전달하고 있어요"
-                : "마음에 드는 사진을 눌러주세요"}
+                : isSoloMode && selectedItemId !== null
+                  ? "다음 대결을 준비하고 있어요"
+                  : "마음에 드는 사진을 눌러주세요"}
             </span>
           )}
         </div>
@@ -441,6 +443,7 @@ export function PlayView({
 
       <div className={ui.matchArena}>
         <VoteCard
+          key={match.item_a.id}
           disabled={voteDisabled || selectedItemId === match.item_a_id}
           item={match.item_a}
           onSelect={() => onVote(match.item_a_id)}
@@ -450,6 +453,7 @@ export function PlayView({
           )}
         />
         <VoteCard
+          key={match.item_b.id}
           disabled={voteDisabled || selectedItemId === match.item_b_id}
           item={match.item_b}
           onSelect={() => onVote(match.item_b_id)}
@@ -475,7 +479,8 @@ export function PlayView({
               <MediaPreview
                 alt={`${revealedWinner.name} 승리 후보`}
                 className={ui.votePreview}
-                fit="contain"
+                fit="cover"
+                eager
                 src={revealedWinner.image_url}
               />
             </div>
@@ -538,7 +543,8 @@ function VoteCard({
       <MediaPreview
         alt={`${item.name} 후보 이미지`}
         className={`${ui.votePreview} ${isPlaying ? ui.votePlaying : ""}`}
-        fit="contain"
+        fit="cover"
+        eager
         isPlaying={isPlaying}
         onPlay={() => setPlayingItemId(item.id)}
         playControl="corner"

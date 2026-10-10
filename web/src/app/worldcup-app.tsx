@@ -48,7 +48,7 @@ import homeStyles from "./worldcup/views/home.module.css";
 import { getAvatarForName, ProfileView } from "./worldcup/views/profile-view";
 import { RankingView } from "./worldcup/views/ranking-view";
 import { getDefaultRoundSize, LobbyView, PlayView, ResultView } from "./worldcup/views/room-views";
-import { getConfirmedMatchWinner } from "./worldcup/views/match-winner";
+import { getConfirmedMatchWinner, getGameTransitionKey } from "./worldcup/views/match-winner";
 import { useMatchReveal } from "./worldcup/views/use-match-reveal";
 
 type WorldcupAppProps = {
@@ -355,7 +355,7 @@ export default function WorldcupApp({
     memberId: number;
   } | null>(null);
   const [currentMatch, setCurrentMatch] = useState<MatchResponse | null>(null);
-  const { reveal: matchReveal, revealWinner, clearReveal } = useMatchReveal();
+  const { reveal: matchReveal, revealWinner, clearReveal } = useMatchReveal(currentMatch);
   const [winnerId, setWinnerId] = useState<number | null>(null);
   const [gameNotice, setGameNotice] = useState<string | null>(null);
   const [activeRoundSize, setActiveRoundSize] = useState<number | null>(null);
@@ -375,12 +375,16 @@ export default function WorldcupApp({
   const [soloSetupError, setSoloSetupError] = useState<string | null>(null);
   const [openLegalDocument, setOpenLegalDocument] = useState<LegalDocumentKey | null>(null);
   const [shareToastMessage, setShareToastMessage] = useState<string | null>(null);
-  const nextMatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const appliedTransitionsRef = useRef(new Set<string>());
   const tieDecisionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentMatchIdRef = useRef<number | null>(null);
   const settledMatchIdRef = useRef<number | null>(null);
   const pendingVoteItemIdRef = useRef<number | null>(null);
+  const confirmedVotesRef = useRef<{
+    matchId: number;
+    choices: Map<number, number>;
+  } | null>(null);
   const activeView = initialView ?? view;
   const activeSelectedGameId = initialGameId ?? selectedGameId;
   const selectedGame =
@@ -407,9 +411,6 @@ export default function WorldcupApp({
 
   useEffect(() => {
     return () => {
-      if (nextMatchTimerRef.current) {
-        clearTimeout(nextMatchTimerRef.current);
-      }
       if (tieDecisionTimerRef.current) {
         clearTimeout(tieDecisionTimerRef.current);
       }
@@ -431,13 +432,6 @@ export default function WorldcupApp({
       offChatHistory();
       offChatUpdate();
     };
-  }, []);
-
-  const clearNextMatchTimer = useCallback(() => {
-    if (nextMatchTimerRef.current) {
-      clearTimeout(nextMatchTimerRef.current);
-      nextMatchTimerRef.current = null;
-    }
   }, []);
 
   const clearTieDecisionTimer = useCallback(() => {
@@ -488,13 +482,37 @@ export default function WorldcupApp({
 
   const applyGameUpdate = useCallback(
     (update: GameUpdateResponse) => {
+      // A vote is broadcast and acknowledged separately. A delayed duplicate
+      // must not restart the reveal or put an already played match back on screen.
+      const transitionKey = getGameTransitionKey(update);
+      if (transitionKey) {
+        if (appliedTransitionsRef.current.has(transitionKey)) return;
+        appliedTransitionsRef.current.add(transitionKey);
+      }
+      // Keep accepted votes synchronous: socket events and their acknowledgements
+      // can arrive before React has rendered the latest vote stamps.
+      if (currentMatch && confirmedVotesRef.current?.matchId !== currentMatch.id) {
+        confirmedVotesRef.current = { matchId: currentMatch.id, choices: new Map() };
+      }
+      if ("status" in update && update.status === "tie") {
+        confirmedVotesRef.current?.choices.clear();
+      }
+      if (
+        "status" in update &&
+        (update.status === "voting" || update.status === "nextMatch") &&
+        update.vote
+      ) {
+        confirmedVotesRef.current?.choices.set(update.vote.memberId, update.vote.selectItemId);
+      }
       const confirmedWinner = getConfirmedMatchWinner({
         match: currentMatch,
         update,
-        soloVoteItemId: roomMode === "solo" && players.length === 1
+        soloVoteItemId: players.length === 1
           ? pendingVoteItemIdRef.current ?? selectedItemId
           : null,
         tieBreakerMemberId,
+        participantCount: players.length,
+        votes: Array.from(confirmedVotesRef.current?.choices ?? [], ([memberId, selectItemId]) => ({ memberId, selectItemId })),
       });
       if (currentMatch && confirmedWinner !== null) {
         revealWinner(currentMatch, confirmedWinner);
@@ -503,8 +521,8 @@ export default function WorldcupApp({
       setIsVoting(false);
 
       if (isMatchResponse(update)) {
-        clearNextMatchTimer();
         resetTieBreaker();
+        pendingVoteItemIdRef.current = null;
         currentMatchIdRef.current = update.id;
         settledMatchIdRef.current = null;
         setCurrentMatch(update);
@@ -520,8 +538,8 @@ export default function WorldcupApp({
       }
 
       if ("finished" in update && update.finished) {
-        clearNextMatchTimer();
         resetTieBreaker();
+        pendingVoteItemIdRef.current = null;
         currentMatchIdRef.current = null;
         settledMatchIdRef.current = null;
         setWinnerId(update.winnerId);
@@ -556,8 +574,6 @@ export default function WorldcupApp({
         ) {
           return;
         }
-
-        clearNextMatchTimer();
         clearTieDecisionTimer();
         const nextTieBreakerMemberId = update.tieBreakerMemberId ?? update.tieMembers ?? null;
         currentMatchIdRef.current = update.match.id;
@@ -584,51 +600,25 @@ export default function WorldcupApp({
 
       if (update.status === "nextMatch") {
         resetTieBreaker();
-        if (!update.vote) {
-          clearNextMatchTimer();
-          currentMatchIdRef.current = update.match.id;
-          settledMatchIdRef.current = null;
-          setCurrentMatch(update.match);
-          setSelectedItemId(null);
-          setVoteStamps([]);
-          setGameNotice(null);
-          setView("play");
-          return;
-        }
-
-        addVoteStamp(update.vote);
-        settledMatchIdRef.current = currentMatchIdRef.current;
-
-        if (update.vote.memberId === currentMember?.memberId) {
-          setSelectedItemId(update.vote.selectItemId);
-        }
-        setGameNotice("다음 매치로 넘어갑니다.");
-
-        if (nextMatchTimerRef.current) {
-          clearTimeout(nextMatchTimerRef.current);
-        }
-
-        nextMatchTimerRef.current = setTimeout(() => {
-          currentMatchIdRef.current = update.match.id;
-          settledMatchIdRef.current = null;
-          setCurrentMatch(update.match);
-          setSelectedItemId(null);
-          setVoteStamps([]);
-          setGameNotice(null);
-          setView("play");
-          nextMatchTimerRef.current = null;
-        }, 1000);
+        pendingVoteItemIdRef.current = null;
+        // Commit the next match now; matchReveal alone holds the old pair for
+        // the animation. There is no second timer that can expose the old pair.
+        currentMatchIdRef.current = update.match.id;
+        settledMatchIdRef.current = null;
+        setCurrentMatch(update.match);
+        setSelectedItemId(null);
+        setVoteStamps([]);
+        setGameNotice(null);
+        setView("play");
       }
     },
     [
       addVoteStamp,
-      clearNextMatchTimer,
       clearTieDecisionTimer,
       currentMember?.memberId,
       currentMatch,
       players.length,
       revealWinner,
-      roomMode,
       selectedItemId,
       tieBreakerMemberId,
       resetTieBreaker,
@@ -639,13 +629,12 @@ export default function WorldcupApp({
   const applyRoomState = useCallback(
     (state: RoomStateResponse) => {
       clearReveal();
+      appliedTransitionsRef.current.clear();
       const memberContext = {
         avatar: state.member.avatar ?? getAvatarForName(state.member.nickname),
         memberId: state.member.id,
       };
       const restoredRoomMode = getStoredRoomMode(state.room.room_code);
-
-      clearNextMatchTimer();
       resetTieBreaker();
       currentMatchIdRef.current = state.match?.id ?? null;
       settledMatchIdRef.current = null;
@@ -688,7 +677,6 @@ export default function WorldcupApp({
       setView("lobby");
     },
     [
-      clearNextMatchTimer,
       clearReveal,
       enterLobby,
       resetTieBreaker,
@@ -794,7 +782,7 @@ export default function WorldcupApp({
 
   const handleStartGame = useCallback((roundSize?: number) => {
     clearReveal();
-    clearNextMatchTimer();
+    appliedTransitionsRef.current.clear();
     resetTieBreaker();
     setGameNotice(null);
     setVoteStamps([]);
@@ -805,7 +793,7 @@ export default function WorldcupApp({
     setActiveRoundSize(roundSize ?? selectedGame.participants);
     setIsStarting(true);
     startGame(roundSize ? { roundSize } : undefined);
-  }, [clearNextMatchTimer, clearReveal, resetTieBreaker, selectedGame.participants]);
+  }, [clearReveal, resetTieBreaker, selectedGame.participants]);
 
   async function handleVote(selectItemId: number) {
     if (!currentMember || matchReveal) {
@@ -827,6 +815,7 @@ export default function WorldcupApp({
     }
 
     const previousSelectedItemId = selectedItemId;
+    const votedMatchId = currentMatchIdRef.current;
 
     pendingVoteItemIdRef.current = selectItemId;
     setGameNotice(null);
@@ -837,8 +826,12 @@ export default function WorldcupApp({
     });
 
     try {
-      applyGameUpdate(await vote(selectItemId));
+      const update = await vote(selectItemId);
+      // The broadcast may already have advanced the game while this ack was
+      // in flight. Only apply an ack to the match that submitted the vote.
+      if (currentMatchIdRef.current === votedMatchId) applyGameUpdate(update);
     } catch {
+      if (currentMatchIdRef.current !== votedMatchId) return;
       setIsVoting(false);
       setSelectedItemId(previousSelectedItemId);
 
@@ -852,7 +845,7 @@ export default function WorldcupApp({
       }
       setGameNotice("투표에 실패했습니다. 이미 투표했거나 현재 매치가 바뀌었을 수 있습니다.");
     } finally {
-      if (pendingVoteItemIdRef.current === selectItemId) {
+      if (currentMatchIdRef.current === votedMatchId && pendingVoteItemIdRef.current === selectItemId) {
         pendingVoteItemIdRef.current = null;
       }
     }
@@ -860,7 +853,7 @@ export default function WorldcupApp({
 
   function handleBackToHome() {
     clearReveal();
-    clearNextMatchTimer();
+    appliedTransitionsRef.current.clear();
     resetTieBreaker();
     setView("home");
     currentMatchIdRef.current = null;
@@ -967,7 +960,6 @@ export default function WorldcupApp({
     setIsStarting(true);
     setSoloSetupError(null);
     setRoomMode("solo");
-    clearNextMatchTimer();
     resetTieBreaker();
     setCurrentMatch(null);
     setWinnerId(null);
@@ -1548,7 +1540,7 @@ function LegalFooter({
             <p className="text-[14px] font-semibold leading-[1.29] tracking-[-0.224px]">
               PickOn · 픽온
             </p>
-            <p className="mt-2 max-w-[620px] text-[12px] leading-[1.55] tracking-[-0.12px] text-[#63727c]">
+            <p className="mt-2 max-w-[620px] break-keep text-pretty text-[12px] leading-[1.55] tracking-[-0.12px] text-[#63727c]">
               친구와 함께 취향을 고르고, 직접 만든 월드컵을 공유하는 온라인 이상형 월드컵 서비스입니다.
               이용자가 등록한 콘텐츠는 각 권리자의 권리를 존중해야 하며, 신고 접수 시 운영정책에 따라 조치될 수 있습니다.
             </p>

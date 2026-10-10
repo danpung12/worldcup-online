@@ -1,8 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getImageProps } from "next/image";
 import type { MatchResponse } from "@/lib/room-socket";
+import { getMediaImageSrc, getYouTubeId } from "./media-source";
 
-export function useMatchReveal() {
+export function useMatchReveal(nextMatch: MatchResponse | null) {
   const [reveal, setReveal] = useState<{
     match: MatchResponse;
     winnerId: number;
@@ -26,8 +28,30 @@ export function useMatchReveal() {
     timer.current = setTimeout(() => {
       setReveal(null);
       timer.current = null;
-    }, 1100);
+    }, 700);
   }, []);
+
+  useEffect(() => {
+    if (!reveal || !nextMatch || nextMatch.id === reveal.match.id) return;
+    // Warm exactly the same image URLs used by MediaPreview while
+    // the confirmed winner is still on screen. A slow image never blocks play.
+    for (const item of [nextMatch.item_a, nextMatch.item_b]) {
+      const src = getMediaImageSrc(item.image_url);
+      if (!src) continue;
+      const { props } = getImageProps({
+        src,
+        alt: "",
+        width: 820,
+        height: 520,
+        unoptimized: !getYouTubeId(item.image_url),
+      });
+      const image = new window.Image();
+      image.decoding = "async";
+      image.srcset = props.srcSet ?? "";
+      image.src = props.src;
+      void image.decode().catch(() => undefined);
+    }
+  }, [nextMatch, reveal]);
 
   useEffect(
     () => () => {

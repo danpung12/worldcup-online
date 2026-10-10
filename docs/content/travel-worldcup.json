@@ -1,0 +1,1098 @@
+{
+  "title": "여행지 월드컵",
+  "description": "꼭 가보고 싶은 여행지 후보 64곳 중 최애를 골라보세요.",
+  "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+  "rank_snapshot_at": "2026-10-10T09:40:20.875Z",
+  "items": [
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/30a87cae-7ea6-40eb-acdf-68fafa8378e9.jpg",
+      "name": "아이슬란드 오로라 (아이슬란드)",
+      "rank": 1,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/d95ce8fe42eeacb6aec235f1764569f7.jpg",
+      "attribution": {
+        "title": "아이슬란드 오로라 (아이슬란드)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "5397ff4230874b263203aafe485cc794d8b168bb9bc84af69cf56b7ab2d23849",
+      "width": 300,
+      "height": 199
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/e19aa12c-0612-4f5e-ac16-d70167a7ea87.jpg",
+      "name": "우유니 소금 사막 (볼리비아)",
+      "rank": 2,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/547f8c4dc0a3986200edc74a51a36ff2.jpg",
+      "attribution": {
+        "title": "우유니 소금 사막 (볼리비아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "ce5b89ac61025593ef41ac5d27f425b19383931af25d35bdf2da0ebc890f4eb1",
+      "width": 300,
+      "height": 225
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/023df48b-e4c1-4051-910f-c915f5612e37.jpg",
+      "name": "바드후섬 별의 바다 (몰디브)",
+      "rank": 3,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/cf9a3ae4b269ac1533fda70627e93296.jpg",
+      "attribution": {
+        "title": "바드후섬 별의 바다 (몰디브)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "190a2a35c7dae6408a6bce5a03a8a4021c3217219fb3999ec7e5edd641132aef",
+      "width": 300,
+      "height": 300
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/e5944b09-beb2-4fe2-955f-a6979db9c67a.jpg",
+      "name": "바르셀로나 (스페인)",
+      "rank": 4,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/56661c229475313cf1388c41e54eee32.jpg",
+      "attribution": {
+        "title": "바르셀로나 (스페인)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "ef5606e55655f534d85721b834cda12da0277c5dee141a3f9a46024e3b4fdd95",
+      "width": 300,
+      "height": 188
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/f21b2480-1eb7-40c0-b531-57de434996d5.jpg",
+      "name": "런던 (영국)",
+      "rank": 5,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/bace038e351fe24781ec8c4a76e831d5.jpg",
+      "attribution": {
+        "title": "런던 (영국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "0c9584e97b86a0cafb66273eea67e52fec7d730a7f8fa7d27529f9ce530e59b5",
+      "width": 300,
+      "height": 240
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/f1bd038f-27db-4a30-999b-89267add1249.jpg",
+      "name": "뉴욕 (미국)",
+      "rank": 6,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/2536b3f3fa4276d5e68306c5a73514d7.jpg",
+      "attribution": {
+        "title": "뉴욕 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "6c2776406ba1a9b57fc54fc508e9ab983c0da7835369304390690847d02f2dad",
+      "width": 300,
+      "height": 199
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/494376e4-aa28-43d5-b222-2ade9d80a472.jpg",
+      "name": "그린델발트 (스위스)",
+      "rank": 7,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/a490b4f762830613cb55756d29285ceb.jpg",
+      "attribution": {
+        "title": "그린델발트 (스위스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "879a845fdbf782b952797e0252039ecc26a947f3661dcec20750bb6318d04fe4",
+      "width": 300,
+      "height": 197
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/2ef5e7ff-c061-4dfb-a633-4622cbde0e22.jpg",
+      "name": "산토리니 (그리스)",
+      "rank": 8,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/aa14a8aebdd12d72a8c32383d5d4ea6d.jpg",
+      "attribution": {
+        "title": "산토리니 (그리스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "f77d08c1f03f1a6ad04c319a0d8544f4cbde839758644f33808507d65be81f8e",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/2580dcf4-e7f7-4397-a907-308f4f4117c0.jpg",
+      "name": "라스베가스 (미국)",
+      "rank": 9,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/d17875a01e5e26cf38989bf721ebde6d.jpg",
+      "attribution": {
+        "title": "라스베가스 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "7da6ea959b7de315e20064d6deb985a7e9e6835319f71daa0b67d04f15c864d8",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/c65a56bc-48fc-4c82-a22b-a3aef51b8824.jpg",
+      "name": "남극",
+      "rank": 10,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/45ec352faabaeb0372a013c5b062dc58.jpg",
+      "attribution": {
+        "title": "남극",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "2d3973c3c8f044af5fc03a46af292c15a134116e4ae2b77ca9d2fc5cb1c7a697",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/e7a52a00-f5c3-4ba0-8f8a-c24812462310.jpg",
+      "name": "파리 (프랑스)",
+      "rank": 11,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/c535314ddcdfdd4afb23a1ae4cca12af.jpg",
+      "attribution": {
+        "title": "파리 (프랑스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "91f1a0e7c0fe08df2bb3308bbf24a29e230900a153da2257a72026edf6bc2514",
+      "width": 300,
+      "height": 209
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/57ffc01e-abaa-4d2d-a7da-75537b909334.jpg",
+      "name": "라우터브루넨 (스위스)",
+      "rank": 12,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/d215e7b3cff1019e00a43b9beb497925.jpg",
+      "attribution": {
+        "title": "라우터브루넨 (스위스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "083a7a0ff4846c31c842be1bb8037d0e1656778956f693c1fba4b741c8516e44",
+      "width": 300,
+      "height": 210
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/068622b4-f162-462e-83be-f36ee84f2113.jpg",
+      "name": "체르마트 (스위스)",
+      "rank": 13,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/ce5a68a001c364cb685b5fc750f1b8f0.jpg",
+      "attribution": {
+        "title": "체르마트 (스위스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "4487f8a247fbc72cc604c5f626fad13912a87690bb7843377102f155e34abe40",
+      "width": 300,
+      "height": 225
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/3f0385ac-795b-4120-a292-344d7383c24a.jpg",
+      "name": "하와이 (미국)",
+      "rank": 14,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/8b0eb1aafeccb7906781a711276cdafb.jpg",
+      "attribution": {
+        "title": "하와이 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "84f8b2836b91089b76a76ba8485e3ae24ffe8998481c0a6a5b57e387e139f986",
+      "width": 300,
+      "height": 326
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/63fe2e3d-f315-4331-9967-0a935e0ec3d8.jpg",
+      "name": "베네치아 (이탈리아)",
+      "rank": 15,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/2c5d224beb22508af6d21bebcd53db88.jpg",
+      "attribution": {
+        "title": "베네치아 (이탈리아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "d9b06454f9f71790f3dcedd749ec8d5a4a1073bcb60ad6011b7ffc79c8842d38",
+      "width": 300,
+      "height": 210
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/f5fdf570-2199-40da-92e2-23ffcf5a90a8.jpg",
+      "name": "로마 (이탈리아)",
+      "rank": 16,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/a828e05e0b5e66d2b28d243c85ce2ea8.jpg",
+      "attribution": {
+        "title": "로마 (이탈리아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "ea5c04cb9fb37b6ae7394870853b7540906b08ebdb442280d68039d2277072bc",
+      "width": 300,
+      "height": 214
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/3e04a57e-16a5-472e-9c38-49581be5f360.jpg",
+      "name": "스카프타펠 얼음동굴 (아이슬란드)",
+      "rank": 17,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/8c880a7f19fcb5da4128c4a8a75a8569.jpg",
+      "attribution": {
+        "title": "스카프타펠 얼음동굴 (아이슬란드)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "84003a8acd3c54d75f9fde5ffaed6cb5018e38c24d9a7b54e2238ca63179e1da",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/1d1a89ce-cdce-4c9b-a39a-128cebc7e466.jpg",
+      "name": "그랜드 캐년 (미국)",
+      "rank": 18,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/17fbb4e7572afd5dd4de48abc4490b63.jpg",
+      "attribution": {
+        "title": "그랜드 캐년 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "8e7c5df6768bfed3b7a30be94ae8877810510a9bb457572367dedb8a5d912c1f",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/b49a61ff-bbef-4224-b48d-5738602fb686.jpg",
+      "name": "빈 (오스트리아)",
+      "rank": 19,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/a82bbaf22395956d3dde201bd34f4839.jpg",
+      "attribution": {
+        "title": "빈 (오스트리아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "84ac5897330cebed455d9882d8b758f414b99a5544d68b3facc94fb74f072547",
+      "width": 300,
+      "height": 226
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/db8f3b64-fe07-4182-b543-42c6a425f064.jpg",
+      "name": "로스엔젤레스 (미국)",
+      "rank": 20,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/670a3f622e0ceddb46815ff1ebf25e38.jpg",
+      "attribution": {
+        "title": "로스엔젤레스 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "9f916d19233b49cc754f602aca93c606241bc322cbb7556139c33f781bdd31bd",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/02a3db3b-0ae6-4372-ac4c-9dffec1d21c4.jpg",
+      "name": "스코틀랜드 에든버러 (영국)",
+      "rank": 21,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/b2434399f3352a956daa6c19afbbad0d.jpg",
+      "attribution": {
+        "title": "스코틀랜드 에든버러 (영국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "c9a032453f7fc5b82241eb136099d1dac60d06545c24e190db072a0b1dd19fc2",
+      "width": 300,
+      "height": 188
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/e565d734-8ec4-45df-a6cf-531c43bd10cd.jpg",
+      "name": "세렝게티 국립공원 (탄자니아)",
+      "rank": 22,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/1d95f4c3aeaca2fd9db730607c2c5476.jpg",
+      "attribution": {
+        "title": "세렝게티 국립공원 (탄자니아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "aa7c9d88026bb28ddaf8224dc7b088a40c89441d4a51b6b38cb173b16bf75362",
+      "width": 300,
+      "height": 220
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/5c12e0ad-386e-4716-b754-24952eec8182.jpg",
+      "name": "몽생미셸 (프랑스)",
+      "rank": 23,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/2fc05e8974272a1980911c99b8e1ff4c.jpg",
+      "attribution": {
+        "title": "몽생미셸 (프랑스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "c4926b0f97a19a166012ed5c249d40718c94b288e76c405f2e9642a2722a2a35",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/40cea2a8-7b0f-43f1-b4c3-777f0de23c6a.jpg",
+      "name": "삿포로 (일본)",
+      "rank": 24,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/cef0e3e56fd354136fd84589dec1705a.jpg",
+      "attribution": {
+        "title": "삿포로 (일본)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "81e0dd8161a49b6d8088baf98208e10375703080b96a36b1db5a1cae29ad0f02",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/0537241f-50d4-40a4-ac69-2cb510820d26.jpg",
+      "name": "아테네 (그리스)",
+      "rank": 25,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/e33deceb77c28504717605435ca90afe.jpg",
+      "attribution": {
+        "title": "아테네 (그리스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "1ca5b590f7d8e87d1f410f0ee95021a32e97115642bd1fe8f4f07b3e7b19d9ae",
+      "width": 300,
+      "height": 194
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/c8dc460d-e0e7-4c35-9f4c-46a68e0648f8.jpg",
+      "name": "디즈니랜드 매직킹덤 (미국)",
+      "rank": 26,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/117d23fde22955a40fea869a65bfade5.jpg",
+      "attribution": {
+        "title": "디즈니랜드 매직킹덤 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "ad90ec02ebc670f6f2383cb132558799cc87eb83521a9c6a72be89406548b48d",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/574885b8-40a9-4040-9c3d-213380edc956.jpg",
+      "name": "도쿄 (일본)",
+      "rank": 27,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/9d70b687755c2a693e818dd6c39424af.jpg",
+      "attribution": {
+        "title": "도쿄 (일본)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "aec25dd6e824e625c85748922e6373907bfd667334f6938d38a6ae87c8c1b372",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/c2dd2e38-5ab6-4976-90dd-0ab4495a7741.jpg",
+      "name": "두바이 (아랍에미리트)",
+      "rank": 28,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/fbf756dd64acfec6d4ca83d27eeaa9cb.jpg",
+      "attribution": {
+        "title": "두바이 (아랍에미리트)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "909959b28f1d55454ed7be71e265942702b07cf4f06d343151c8838b96a35076",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/6d7b8f10-3c66-41f6-8bfb-207d160a7e33.jpg",
+      "name": "시라카와고 마을 (일본)",
+      "rank": 29,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/e574692e0bb2622bb94477c6518237aa.jpg",
+      "attribution": {
+        "title": "시라카와고 마을 (일본)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "0fcb1db857358fe030e855bcedcbb704911d7968b8dafe0ced3a8ba6891c392a",
+      "width": 300,
+      "height": 192
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/4bbc7c30-7328-429f-a306-6f40e4035c8a.jpg",
+      "name": "자킨토스섬 (그리스)",
+      "rank": 30,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/f66158182828febb7ab8251d9977a085.jpg",
+      "attribution": {
+        "title": "자킨토스섬 (그리스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "1f10b41d583957f8c79e69c182d5fb74028ec6fd501a81cfee50381cf87fce28",
+      "width": 300,
+      "height": 205
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/3b519cc5-7ec9-41c5-b9c0-f7f9105d5b50.jpg",
+      "name": "할슈타트 (오스트리아)",
+      "rank": 31,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/93e6a7ba5979f657f040fb303153f30a.jpg",
+      "attribution": {
+        "title": "할슈타트 (오스트리아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "e1a699722a446b2b6887a6aff94cf69f6dc148ce42142fe1d95c9dbc99092a36",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/24254ef1-ce1c-478e-96a2-fd52b57e636a.jpg",
+      "name": "보라보라섬 (폴리네시아)",
+      "rank": 32,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/d4a270fcde46258d06807371c61453dc.jpg",
+      "attribution": {
+        "title": "보라보라섬 (폴리네시아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "a2d1359b755276a2d7c164c8f9171a819b073250d5ac985e64e4924febcfbce0",
+      "width": 300,
+      "height": 225
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/e7b27bd8-1b0a-43b6-83a3-13e27460aa3f.jpg",
+      "name": "기자의 대피라미드 (이집트)",
+      "rank": 33,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/27561706cfd31475af08ea316cd08754.jpg",
+      "attribution": {
+        "title": "기자의 대피라미드 (이집트)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "da909de2c2877ecd89e5d7c1a0304faf1cd0d321cc0e470d62e05e454a2bc71f",
+      "width": 300,
+      "height": 220
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/caf9bfb7-66f1-45e3-86ed-602310c3c5b0.jpg",
+      "name": "포르투 (포르투갈)",
+      "rank": 34,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/02bd1d5d62e3212029608a9ae153b7c9.jpg",
+      "attribution": {
+        "title": "포르투 (포르투갈)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "86cb0626acc601227e040c037d387e0310b0fffcd65e45039037ba270587ca29",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/ac73464f-9108-4106-b831-a52bf3185b2c.jpg",
+      "name": "칸쿤 (멕시코)",
+      "rank": 35,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/f27ead60f618af5f512f354961efac80.jpg",
+      "attribution": {
+        "title": "칸쿤 (멕시코)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "e11a6107bf3d935dce38d4bb6f48a7f0be6462df8be7cf156e79c4fd420a622f",
+      "width": 300,
+      "height": 186
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/634f4595-caa8-41cd-b7fb-b4d165564ab4.jpg",
+      "name": "아부심벨 신전 (이집트)",
+      "rank": 36,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/8234fa998a82dc11d46ef1b542fa18b5.jpg",
+      "attribution": {
+        "title": "아부심벨 신전 (이집트)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "f177cab748de38a5a776c052924b979026d8d85e23a21acd9bb70806189b53d2",
+      "width": 300,
+      "height": 211
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/278905ab-20be-4fd9-a25d-815ff8995803.jpg",
+      "name": "부다페스트 (헝가리)",
+      "rank": 37,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/bcf64f702801e366a9e4899d1993eb49.jpg",
+      "attribution": {
+        "title": "부다페스트 (헝가리)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "09e3bf9d68a79900f2b74e45d2daced7caa7922db977ff28335848a7965bfb82",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/86203adc-e9c7-4a49-bc1a-477650e93f4e.jpg",
+      "name": "베르사유 궁전 (프랑스)",
+      "rank": 38,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/958cea24bba2b9dde8879291f838252b.jpg",
+      "attribution": {
+        "title": "베르사유 궁전 (프랑스)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "414c37a2cb8dbee010058ef8843ace29a500f91103458bc349607178015d2e14",
+      "width": 300,
+      "height": 240
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/484655be-87d9-4db2-887d-02e1f695450c.jpg",
+      "name": "프라하 (체코)",
+      "rank": 39,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/acc8b623cec589f9636a187ec7e3d58d.jpg",
+      "attribution": {
+        "title": "프라하 (체코)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "0918c650c9ea92526fb9f3c896868ac6f4235403c669328ce540f9780a18fa92",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/95633b2d-cbcf-4504-9bdb-fa9f3b000493.jpg",
+      "name": "피렌체 (이탈리아)",
+      "rank": 40,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/f40b4e8b3ef7a427ea00cf816e1ec060.jpg",
+      "attribution": {
+        "title": "피렌체 (이탈리아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "2c028429c5d457270cd4e0b40dff1057828f20c7523d461b72b21dc5009000e7",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/4ba9a016-a983-4b5f-b520-68fd4b467c47.jpg",
+      "name": "밴프 국립공원 (캐나다)",
+      "rank": 41,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/bcbee5e493e9aebb9a34ba743268da66.jpg",
+      "attribution": {
+        "title": "밴프 국립공원 (캐나다)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "c415d20ef36eb68d6ee422ec9ddb54091eb02fa5ce5ee5ab06f212f911509136",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/e02296e9-f8f1-410a-ad91-fda14257b645.jpg",
+      "name": "노이슈반슈타인 성 (독일)",
+      "rank": 42,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/4b6bdb844d646c6196b401064dc2b1e3.jpg",
+      "attribution": {
+        "title": "노이슈반슈타인 성 (독일)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "b3555d6c2022305b9df33e2709824a2dee2e08f168da8ad5ded38895f76b6fcf",
+      "width": 300,
+      "height": 217
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/dff87e1c-f48c-4eee-9c23-1e7611615fe8.jpg",
+      "name": "암스테르담 (네덜란드)",
+      "rank": 43,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/ae0f91747ee264e40549e9f77f5dd333.jpg",
+      "attribution": {
+        "title": "암스테르담 (네덜란드)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "56b90a675a0d5d407108212e53ef55521e6f2629cf140e0a4f1273465be941f0",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/15b9cdc8-8c87-49a7-a894-21024fa2b9e4.jpg",
+      "name": "와이토모 동굴 (뉴질랜드)",
+      "rank": 44,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/57c2c34d7f989f17884679e7eb53d44d.jpg",
+      "attribution": {
+        "title": "와이토모 동굴 (뉴질랜드)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "883571ad20a343f3d1c3073764167edc7822460ca202f0e448371f506328d40d",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/8895faa9-1af3-483d-aecf-920258ad2838.jpg",
+      "name": "괌 (미국)",
+      "rank": 45,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/3d92c071a227f6ce93ff0c68be1d3e74.jpg",
+      "attribution": {
+        "title": "괌 (미국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "e93d4497f915af9b847c714959f32e48ced21466a554824ca1cb1f82f770e97e",
+      "width": 300,
+      "height": 300
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/793af90b-2bf8-48f4-9807-d6a113066fd8.jpg",
+      "name": "바이칼 호 (러시아)",
+      "rank": 46,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/fe884a09e245dd40da5b328ccebe3cd4.jpg",
+      "attribution": {
+        "title": "바이칼 호 (러시아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "5b235877ac196f2f26336a6f65a325bd8c1e2b1b0ab5a174644950fc6d89f836",
+      "width": 300,
+      "height": 221
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/22beba7a-8f44-4ca3-9e7c-10aec8f1d754.jpg",
+      "name": "겐트 (벨기에)",
+      "rank": 47,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/cdcd354730d1b5f1a52ddac0212fa3ec.jpg",
+      "attribution": {
+        "title": "겐트 (벨기에)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "dfad1ecd3d109f6e879f6a323571846e63be22d2a6fd7ef19239f2a18d1268ea",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/374fdd76-7a8e-4912-9679-ceedeb7592a3.jpg",
+      "name": "마추픽추 (페루)",
+      "rank": 48,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/e1e62223ad75dc8913b1975032dc2a3f.jpg",
+      "attribution": {
+        "title": "마추픽추 (페루)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "e50cf343c4b7ff674d1d16a524d2e11cb1b751356b3f35c5a310d527af4d4754",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/b97229c2-cc6d-43d0-87dc-5bcf5dd56ee9.jpg",
+      "name": "이스탄불 (튀르키예)",
+      "rank": 49,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/94e13bd2fc4a2a60d18024aac19c4381.jpg",
+      "attribution": {
+        "title": "이스탄불 (튀르키예)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "49cdabd9dd8b66627460860bbd6c44e490d2efaeaaed8adaeb04db2f66114547",
+      "width": 300,
+      "height": 199
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/b3f56d7d-b67d-463d-ab88-2beb1ae5d669.jpg",
+      "name": "시드니 (호주)",
+      "rank": 50,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/4e92c0595ced124135f5997c785d08d0.jpg",
+      "attribution": {
+        "title": "시드니 (호주)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "1f6232366be5ecbdcc1722816341767b79477f62c292fca912c5aa18185c5ae3",
+      "width": 300,
+      "height": 188
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/a755213b-0bbf-4fb0-8935-04ab3d8c2616.jpg",
+      "name": "마카오",
+      "rank": 51,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/7ce5134591486f30d6d6bdaf35f0fbd0.jpg",
+      "attribution": {
+        "title": "마카오",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "bd77f2c2352b9a8da81cf23f4f15d9828bba73e5dc887aeb7abca3e2f352a9c8",
+      "width": 300,
+      "height": 199
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/ea438962-0176-4af6-bf21-7d5f8407e4ce.jpg",
+      "name": "갈라파고스 제도 (에콰도르)",
+      "rank": 52,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/52a0dfaede70fd3b4b792f9769d7b293.jpg",
+      "attribution": {
+        "title": "갈라파고스 제도 (에콰도르)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "d7cbe27df9c361be7528acf6a3a1ce4e01574a78f52bcddba67deb1f91c84c4f",
+      "width": 300,
+      "height": 196
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/27c706fc-9939-465d-b96f-98dc0d834482.jpg",
+      "name": "보라카이 (필리핀)",
+      "rank": 53,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/a48aced8923c705da969da78c08435d8.jpg",
+      "attribution": {
+        "title": "보라카이 (필리핀)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "13ac2c94e95a71dbe336ea23024ce359e65d520a6d250ef28005df18d1bc003b",
+      "width": 300,
+      "height": 225
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/2580f7b1-8fda-4ecf-b736-a6cc54337837.jpg",
+      "name": "나이아가라 폭포 (캐나다)",
+      "rank": 54,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/1596336b3dbf5587890f4ba2749e14f2.jpg",
+      "attribution": {
+        "title": "나이아가라 폭포 (캐나다)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "2b955924f5b31d37fe55cfe36c31630e7227c81c8dc07e5e3328754c8d7c8e90",
+      "width": 300,
+      "height": 188
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/23138973-0359-4222-96b8-969b3b069b88.jpg",
+      "name": "비치 헤드 (영국)",
+      "rank": 55,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/c05f913e346fcf58644aae3a8de5b5fe.jpg",
+      "attribution": {
+        "title": "비치 헤드 (영국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "50f7006e94ba8b421bdac57ddec26c1921bb2a6983770f16b6e1dca604cc6002",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/ce7591f8-bd09-40a0-b5be-614e5dfc9d39.jpg",
+      "name": "후지산 (일본)",
+      "rank": 56,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/54942a4ed7094561d32aaec1958bbfc3.jpg",
+      "attribution": {
+        "title": "후지산 (일본)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "9dba64b47ad6c63214305ffe662e589fa20f5b7eff3f1f011b4f4482e5932606",
+      "width": 300,
+      "height": 225
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/520ee343-3882-412c-bfbf-cacff569d7c4.jpg",
+      "name": "플리트비체 호수공원 (크로아티아)",
+      "rank": 57,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/159dd5d476f4e63c9db895a4cc09b166.jpg",
+      "attribution": {
+        "title": "플리트비체 호수공원 (크로아티아)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "b078b56ed5b2a0f129e2cedb8d5afd813e8d949acdefed3119a0a4bf4613f241",
+      "width": 300,
+      "height": 187
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/980f1010-39b1-4d31-9d5d-cb903a4ba8fe.jpg",
+      "name": "모리셔스",
+      "rank": 58,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/267fe44917eed64d32e11daba00698d0.jpg",
+      "attribution": {
+        "title": "모리셔스",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "5b83b84080fd8e2c89cec61816b4ab585ef4bfafbe2a8ad8fb9d415cb452f087",
+      "width": 300,
+      "height": 188
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/bd0ec8d7-24e8-4a85-ae32-f9daf9d697fe.jpg",
+      "name": "파묵칼레 (튀르키예)",
+      "rank": 59,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/c3968ce45384e99d0ac7f8b0cf8a27e0.jpg",
+      "attribution": {
+        "title": "파묵칼레 (튀르키예)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "dec5139200aaec7deee562c956ef7d6130c5b42a944999da2596b0b592a81b94",
+      "width": 300,
+      "height": 299
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/9e07292a-ac7a-4ea3-9124-4d251e6c9eb2.jpg",
+      "name": "성베드로 대성당 (바티칸)",
+      "rank": 60,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/5a7516496d5e61d470420a9148cf2f84.jpg",
+      "attribution": {
+        "title": "성베드로 대성당 (바티칸)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "49f09b74a6f72cc821908cd95e8e80f2c9ec026efef12ae47f3242b3a8f596db",
+      "width": 300,
+      "height": 201
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/6d5ce8fd-b193-4719-9550-b9a9bcdc5660.jpg",
+      "name": "리스본 (포르투갈)",
+      "rank": 61,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/03b3399628aaebbca6fcf0b28bb702bf.jpg",
+      "attribution": {
+        "title": "리스본 (포르투갈)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "e27eee4dbf7f4f391f6d062235fd8df5c81eee8f54c7cc6a7deb83835470aac1",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/0d807a97-a5d7-481a-8c7f-4cd6f7648776.jpg",
+      "name": "마다가스카르",
+      "rank": 62,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/0c842d607f580a64bee1435fb67a640a.jpg",
+      "attribution": {
+        "title": "마다가스카르",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "ab7e3a234661776b25ba6d80ae8f83c4663bfaa41a9f51c80502feee0753feab",
+      "width": 300,
+      "height": 201
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/487be8d2-05fc-4f4a-a601-b53e9b26ef0c.jpg",
+      "name": "서울 (대한민국)",
+      "rank": 63,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/ee54391fdd0eb629050120b23d798e91.jpg",
+      "attribution": {
+        "title": "서울 (대한민국)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "17f351d27d9d2c1e9e41a81a8f1fb33fff7eff3574e53278f9cd0f9b17e59104",
+      "width": 300,
+      "height": 200
+    },
+    {
+      "image_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/34a7831c-8502-4bea-a03e-9148d57c9df1.jpg",
+      "name": "피츠로이 (아르헨티나)",
+      "rank": 64,
+      "source_image_url": "https://img2.piku.co.kr/w/uploads/5NkdIM/a745a87f3ed1a0647c1b6164d4b1e5c4.jpg",
+      "attribution": {
+        "title": "피츠로이 (아르헨티나)",
+        "author": "PIKU 제공",
+        "source_url": "https://www.piku.co.kr/w/rank/5NkdIM",
+        "license": "원작자 저작권",
+        "license_url": "",
+        "changes": "JPEG로 변환하고 최대 1200×1600 크기로 축소했습니다. 화면 표시 시 크기에 맞게 잘릴 수 있음."
+      },
+      "sha256": "73cd098e7136c670be33948609ed00832bf1e9e8d3991fd3fe7ba265f31a051c",
+      "width": 300,
+      "height": 225
+    }
+  ],
+  "credits_url": "https://pub-5a1f4840dba34b6b82c6ee77d0359545.r2.dev/images/20e6ff36-1a83-457d-b511-4c098ed7bc44.html",
+  "game_id": 3
+}

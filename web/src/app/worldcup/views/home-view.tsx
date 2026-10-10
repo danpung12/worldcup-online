@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { WorldcupGame } from "@/lib/worldcup";
 import styles from "./home.module.css";
+import { ImageCredit } from "./image-credit";
 
 type HomeSortMode = "popular" | "latest";
 
@@ -69,9 +70,9 @@ export function HomeView({
         </div>
         <div className={`${styles.container} ${styles.heroContent}`}>
           <h1>
-            좋아하는 것들 사이,
+            친구와 함께 즐기는,
             <br />
-            <span>나만의 1위</span>를 골라봐.
+            <span>온라인 이상형 월드컵.</span>
           </h1>
           <p className={styles.heroDescription}>
             혼자 즐겨도, 친구와 함께해도.
@@ -300,13 +301,16 @@ function HomeThumbnail({ src, title }: { src: string; title: string }) {
   }
 
   return (
-    <Image
-      alt={`${title} 대표 이미지`}
-      src={thumbnail}
-      fill
-      sizes="(max-width: 639px) calc(100vw - 40px), (max-width: 1023px) calc((100vw - 72px) / 2), 370px"
-      className={styles.thumbnail}
-      onError={() => setHasError(true)}
-    />
+    <>
+      <Image
+        alt={`${title} 대표 이미지`}
+        src={thumbnail}
+        fill
+        sizes="(max-width: 639px) calc(100vw - 40px), (max-width: 1023px) calc((100vw - 72px) / 2), 370px"
+        className={styles.thumbnail}
+        onError={() => setHasError(true)}
+      />
+      <ImageCredit src={thumbnail} />
+    </>
   );
 }

@@ -9,9 +9,14 @@
   color: var(--home-ink);
 }
 
-.shell :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+.shell :is(button, a, select, [tabindex]):not(input):not(textarea):focus-visible {
   outline: 3px solid var(--home-accent);
   outline-offset: 4px;
+}
+
+/* Text fields indicate focus through their own border or enclosing field. */
+.shell :is(input, textarea):focus-visible {
+  outline: none;
 }
 
 .shell > div > footer {

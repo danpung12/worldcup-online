@@ -61,7 +61,9 @@ export function RankingView({
           <h2 className={ui.sectionLabel}>
             전체 순위 <span>{game.ranking.length}</span>
           </h2>
-          <p>최종 우승 횟수 기준 · 후보를 누르면 크게 볼 수 있어요.</p>
+          <div>
+            <p>최종 우승 횟수 기준 · 후보를 누르면 크게 볼 수 있어요.</p>
+          </div>
         </div>
         {hasNoWins && (
           <p className={ui.rankingNotice}>

@@ -394,7 +394,9 @@ function mapBackendGame(game: BackendWorldcupGame): WorldcupGame {
   return {
     id: game.id,
     title: game.title,
-    description: game.description ?? "친구와 함께 고르는 이상형 월드컵",
+    description: (game.description ?? "친구와 함께 고르는 이상형 월드컵")
+      .replace(/(?:\r?\n)?[ \t]*사진\s*출처\s*[·ㆍ/]?\s*라이선스\s*:\s*https?:\/\/\S+/gu, "")
+      .trim(),
     participants: game.items.length,
     playCount: game.play_count,
     rounds: game.items.length,

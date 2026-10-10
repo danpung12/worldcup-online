@@ -3,20 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 import { ImageOff, Play } from "lucide-react";
-
-function getYouTubeId(url: string) {
-  const match = url.match(
-    /(?:embed\/|watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{6,})/,
-  );
-
-  return match?.[1] ?? null;
-}
+import { ImageCredit } from "./image-credit";
+import { getMediaImageSrc, getYouTubeId } from "./media-source";
 
 export function MediaPreview({
   alt,
   className,
   fit = "cover",
   isPlaying = false,
+  eager = false,
   onPlay,
   playControl = "overlay",
   src,
@@ -25,15 +20,14 @@ export function MediaPreview({
   className: string;
   fit?: "cover" | "contain";
   isPlaying?: boolean;
+  eager?: boolean;
   onPlay?: () => void;
   playControl?: "overlay" | "corner";
   src: string;
 }) {
   const videoId = getYouTubeId(src);
-  const thumbnail = videoId
-    ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-    : null;
-  const imageSrc = thumbnail ?? src;
+  const imageSrc = getMediaImageSrc(src);
+  const thumbnail = videoId ? imageSrc : null;
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   if (videoId && isPlaying) {
@@ -62,10 +56,13 @@ export function MediaPreview({
         </div>
       ) : (
         <Image
+          key={imageSrc}
           alt={alt}
           className={`size-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
           height={520}
+          loading={eager ? "eager" : "lazy"}
           src={imageSrc}
+          unoptimized={!videoId}
           onError={() => setFailedSrc(imageSrc)}
           width={820}
         />
@@ -103,6 +100,7 @@ export function MediaPreview({
           <Play className="size-5 fill-white text-white" />
         </span>
       )}
+      {failedSrc !== imageSrc && <ImageCredit src={imageSrc} />}
     </div>
   );
 }
@@ -115,7 +113,7 @@ export function ExpandedMedia({ alt, src }: { alt: string; src: string }) {
       <iframe
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
-        className="aspect-video w-full bg-black"
+        className="block aspect-video w-full bg-black"
         src={`https://www.youtube.com/embed/${videoId}`}
         title={alt}
       />
@@ -123,12 +121,18 @@ export function ExpandedMedia({ alt, src }: { alt: string; src: string }) {
   }
 
   return (
-    <Image
-      alt={alt}
-      className="max-h-[72vh] w-full object-contain bg-black"
-      height={760}
-      src={src}
-      width={760}
-    />
+    <div>
+      <div className="relative">
+        <Image
+          alt={alt}
+          className="block max-h-[72vh] w-full object-contain bg-black"
+          height={760}
+          src={src}
+          unoptimized
+          width={760}
+        />
+        <ImageCredit src={src} />
+      </div>
+    </div>
   );
 }
