@@ -757,6 +757,193 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.editorActions > p {
+  flex: 1;
+  min-width: 180px;
+}
+.editorFields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.editorActionButton,
+.editorFileButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 11px;
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  transition: background 0.15s;
+}
+.editorActionButton:disabled,
+.editorFileButton:disabled {
+  opacity: 0.5;
+}
+.editorActionButton {
+  border-color: #c9e1ee;
+  background: #edf6fb;
+  color: #245a7a;
+}
+.editorActionButton:hover:not(:disabled) {
+  background: #dceef7;
+}
+.editorActionButton[data-variant="danger"] {
+  border-color: #f0d2d2;
+  background: #fff;
+  color: #c32b20;
+}
+.editorActionButton[data-variant="danger"]:hover:not(:disabled) {
+  background: #fff1f0;
+}
+.editorFileButton {
+  border-color: #dce5eb;
+  background: #fff;
+  color: #425563;
+}
+.editorFileButton:hover:not(:disabled) {
+  background: #f2f6f9;
+}
+.editorNotice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 13px 16px;
+  border: 1px solid #b8decf;
+  border-radius: 12px;
+  background: #effaf5;
+  color: #286249;
+  font-size: 14px;
+  font-weight: 600;
+}
+.editorNotice svg {
+  flex-shrink: 0;
+}
+.editorHint {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #63727c;
+  overflow-wrap: anywhere;
+}
+.editorMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #536674;
+}
+.editorSources {
+  font-size: 12px;
+  color: #63727c;
+  margin-top: 6px;
+}
+.editorSources summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.editorSources a {
+  display: block;
+  margin-top: 5px;
+  color: #27729b;
+  text-decoration: underline;
+}
+.candidateHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #63727c;
+}
+.candidateHeading span:first-child {
+  color: #245a7a;
+}
+.candidateToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.candidateToolbar .editorSectionTitle {
+  margin-bottom: 8px;
+}
+.candidateToolbarActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.candidateToolbarActions button {
+  white-space: nowrap;
+}
+.requiredLabel,
+.optionalLabel {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.requiredLabel {
+  color: #27729b;
+}
+.optionalLabel {
+  color: #88969f;
+}
+.clearImage {
+  display: block;
+  margin-top: 8px;
+  color: #63727c;
+  font-size: 12px;
+  text-decoration: underline;
+}
+.draftBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #edf4f7;
+  color: #536674;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.draftBar button {
+  flex-shrink: 0;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #27729b;
+}
+.uploadProgress {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  background: #edf6fb;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #245a7a;
+}
+.uploadProgress progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #27729b;
 }
 .editorActions > button {
   min-width: 120px;

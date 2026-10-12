@@ -47,6 +47,7 @@ export type MyWorldcupGame = {
   play_count: number;
   created_at: string;
   updated_at: string;
+  candidateCount?: number;
 };
 
 type UploadResponse = {
@@ -187,6 +188,7 @@ export async function fetchMyWorldcupGames() {
 
   return games.map(({ items, ...game }) => ({
     ...game,
+    candidateCount: items.length,
     thumbnail: rankWorldcupItems(items)[0]?.image_url ?? null,
   }));
 }

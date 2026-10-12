@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { type ClipboardEvent, useRef, useState } from "react";
+import {
+  type ClipboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -31,6 +37,12 @@ import {
 
 import { PageIntro } from "./pickon-ui";
 import ui from "./pickon-ui.module.css";
+import {
+  readCreateDraft,
+  splitDescription,
+  writeCreateDraft,
+  type SavedCreateDraft,
+} from "./create-draft";
 
 type DraftItem = {
   file: File | null;
@@ -51,13 +63,11 @@ function createDraftItem(index: number): DraftItem {
 const surfaceCardClass =
   "rounded-[18px] border border-[#e2e9ed] bg-white p-4 md:p-6";
 const previewImageClass =
-  "overflow-hidden rounded-xl border border-[#e2e9ed] bg-[#f2f6f9]";
+  "relative overflow-hidden rounded-xl border border-[#e2e9ed] bg-[#f2f6f9]";
 const primaryButtonClass = ui.primary;
 const secondaryButtonClass = ui.secondary;
-const fileButtonClass =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-[11px] border border-[#dce5eb] bg-white px-3 text-[13px] tracking-[-0.12px] text-[#425563] active:scale-95 md:h-10 md:px-3.5 md:text-[14px] md:tracking-[-0.224px]";
-const myWorldcupActionButtonClass =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border bg-white px-3 text-[13px] tracking-[-0.12px] active:scale-95 disabled:text-[#c7c7cc] md:h-8 md:px-3";
+const fileButtonClass = ui.editorFileButton;
+const myWorldcupActionButtonClass = ui.editorActionButton;
 const inputClass =
   "h-10 w-full rounded-xl border border-black/10 bg-white px-4 text-[15px] tracking-[-0.224px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10 md:h-11 md:text-[17px] md:tracking-[-0.374px]";
 const textAreaClass =
@@ -66,6 +76,32 @@ const textAreaClass =
 function getPastedImageFile(event: ClipboardEvent<HTMLElement>) {
   return Array.from(event.clipboardData.files).find((file) =>
     file.type.startsWith("image/"),
+  );
+}
+
+function useImagePreviews() {
+  const urls = useRef(new Set<string>());
+  useEffect(
+    () => () => {
+      urls.current.forEach((url) => URL.revokeObjectURL(url));
+      urls.current.clear();
+    },
+    [],
+  );
+  return useCallback((file: File | null) => {
+    if (!file) return null;
+    const url = URL.createObjectURL(file);
+    urls.current.add(url);
+    return url;
+  }, []);
+}
+
+function StatusNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <p className={ui.editorNotice} role="status">
+      <Check size={16} aria-hidden="true" />
+      {children}
+    </p>
   );
 }
 
@@ -81,6 +117,50 @@ export function CreateView({
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"detail" | "list" | "new">("list");
   const [selectedMyGameId, setSelectedMyGameId] = useState<number | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [viewReady, setViewReady] = useState(false);
+  const userId = authUser?.id;
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled || !userId) return;
+      try {
+        const saved = JSON.parse(
+          sessionStorage.getItem(`pickon-editor-view:${userId}`) ?? "null",
+        );
+        if (saved?.mode === "new") setMode("new");
+        else if (saved?.mode === "detail" && Number.isInteger(saved.gameId)) {
+          setSelectedMyGameId(saved.gameId);
+          setMode("detail");
+        } else {
+          setSelectedMyGameId(null);
+          setMode("list");
+        }
+      } catch {
+        /* Browser storage is optional. */
+      }
+      setViewReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  function openEditor(
+    next: "list" | "new" | "detail",
+    gameId: number | null = null,
+  ) {
+    try {
+      sessionStorage.setItem(
+        `pickon-editor-view:${userId}`,
+        JSON.stringify({ mode: next, gameId }),
+      );
+    } catch {
+      /* Keep navigation available. */
+    }
+    setMode(next);
+    setSelectedMyGameId(gameId);
+  }
   const {
     data: myGames = [],
     isError,
@@ -118,10 +198,14 @@ export function CreateView({
   if (mode === "new") {
     return (
       <CreateWorldcupForm
-        onCancel={() => setMode("list")}
+        key={authUser.id}
+        draftKey={`new-worldcup:${authUser.id}`}
+        onCancel={() => openEditor("list")}
         onComplete={async () => {
           await onComplete();
-          setMode("list");
+          await refreshMyGames();
+          setNotice("월드컵을 만들었어요. 목록에서 후보를 관리할 수 있어요.");
+          openEditor("list");
         }}
       />
     );
@@ -130,8 +214,10 @@ export function CreateView({
   if (mode === "detail" && selectedMyGameId) {
     return (
       <WorldcupDetailEditor
+        key={selectedMyGameId}
         gameId={selectedMyGameId}
-        onBack={() => setMode("list")}
+        draftKey={`edit-worldcup:${authUser.id}:${selectedMyGameId}`}
+        onBack={() => openEditor("list")}
         onChanged={refreshMyGames}
       />
     );
@@ -146,10 +232,11 @@ export function CreateView({
       />
 
       <div className={ui.editorBody}>
+        {notice && <StatusNotice>{notice}</StatusNotice>}
         <button
           className={ui.newGameCard}
           type="button"
-          onClick={() => setMode("new")}
+          onClick={() => openEditor("new")}
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#dceef7] text-[#245a7a] md:size-14">
             <Plus className="size-5" />
@@ -164,7 +251,7 @@ export function CreateView({
           </span>
         </button>
 
-        {isLoading && (
+        {(!viewReady || isLoading) && (
           <div className="rounded-[18px] border border-[#e2e9ed] bg-white px-4 py-8 text-center text-[15px] tracking-[-0.224px] text-[#63727c]">
             내 월드컵을 불러오는 중입니다.
           </div>
@@ -195,8 +282,7 @@ export function CreateView({
               game={game}
               onChanged={refreshMyGames}
               onEdit={() => {
-                setSelectedMyGameId(game.id);
-                setMode("detail");
+                openEditor("detail", game.id);
               }}
             />
           ))}
@@ -222,6 +308,7 @@ function MyWorldcupCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { summary, sources } = splitDescription(game.description);
 
   async function handleSave() {
     if (!title.trim()) {
@@ -272,10 +359,10 @@ function MyWorldcupCard({
             <Image
               alt={`${game.title} 썸네일`}
               className="size-full object-cover"
-              height={144}
+              fill
+              sizes="120px"
               src={game.thumbnail}
               unoptimized
-              width={144}
             />
           ) : (
             <Trophy className="size-7 text-[#63727c] md:size-9" />
@@ -301,14 +388,35 @@ function MyWorldcupCard({
                 {game.title}
               </h2>
               <p className="mt-1 line-clamp-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c] md:text-[15px] md:leading-[1.45]">
-                {game.description || "설명이 없습니다."}
+                {summary || "소개를 추가해 나만의 월드컵을 알려보세요."}
               </p>
+              {sources.length > 0 && (
+                <details className={ui.editorSources}>
+                  <summary>사진 출처 보기</summary>
+                  {sources.map((source, index) => (
+                    <a
+                      key={source}
+                      href={source}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      사진 출처 {index + 1}
+                    </a>
+                  ))}
+                </details>
+              )}
+              <div className={ui.editorMeta}>
+                {game.candidateCount !== undefined && (
+                  <span>후보 {game.candidateCount}개</span>
+                )}
+                <span>플레이 {game.play_count.toLocaleString()}회</span>
+              </div>
               <p className="mt-2 text-[12px] tracking-[-0.12px] text-[#63727c]">
                 최근 수정 {formatMyWorldcupDate(game.updated_at)}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  className={`${myWorldcupActionButtonClass} border-[#c9e1ee] text-[#27729b]`}
+                  className={myWorldcupActionButtonClass}
                   type="button"
                   onClick={onEdit}
                 >
@@ -316,7 +424,8 @@ function MyWorldcupCard({
                   수정
                 </button>
                 <button
-                  className={`${myWorldcupActionButtonClass} border-[#f0d2d2] text-[#d92d20]`}
+                  className={myWorldcupActionButtonClass}
+                  data-variant="danger"
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setShowDeleteConfirm(true)}
@@ -383,10 +492,12 @@ function WorldcupDetailEditor({
   gameId,
   onBack,
   onChanged,
+  draftKey,
 }: {
   gameId: number;
   onBack: () => void;
   onChanged: () => Promise<void>;
+  draftKey: string;
 }) {
   const queryClient = useQueryClient();
   const {
@@ -406,12 +517,140 @@ function WorldcupDetailEditor({
   } | null>(null);
   const [isSavingGame, setIsSavingGame] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [dirtyCandidates, setDirtyCandidates] = useState<Set<number>>(
+    new Set(),
+  );
+  const [candidateDrafts, setCandidateDrafts] = useState<
+    Map<number, DraftItem>
+  >(new Map());
+  const [restoredDraft, setRestoredDraft] = useState<{
+    title: string;
+    description: string;
+    items: DraftItem[];
+  } | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const latestDraft = useRef<SavedCreateDraft | null>(null);
+  const createPreview = useImagePreviews();
+  const trackDirty = useCallback(
+    (id: number, dirty: boolean, draft?: DraftItem) => {
+      setDirtyCandidates((current) => {
+        if (current.has(id) === dirty) return current;
+        const next = new Set(current);
+        if (dirty) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+      setCandidateDrafts((current) => {
+        const previous = current.get(id);
+        if (
+          dirty &&
+          draft &&
+          previous?.name === draft.name &&
+          previous.file === draft.file
+        )
+          return current;
+        if (!dirty && !current.has(id)) return current;
+        const next = new Map(current);
+        if (dirty && draft) next.set(id, draft);
+        else next.delete(id);
+        return next;
+      });
+    },
+    [],
+  );
+  useEffect(() => {
+    let cancelled = false;
+    void readCreateDraft(draftKey)
+      .then((saved) => {
+        if (cancelled) return;
+        if (saved) {
+          setGameDraft({
+            gameId,
+            title: saved.title,
+            description: saved.description,
+          });
+          setRestoredDraft({
+            ...saved,
+            items: saved.items.map((item) => ({
+              ...item,
+              previewUrl: createPreview(item.file),
+            })),
+          });
+          setNotice("작성 중이던 수정 내용을 복원했어요.");
+        }
+      })
+      .catch(() => {
+        if (!cancelled)
+          setNotice(
+            "이 브라우저에서는 수정 내용의 임시 저장을 사용할 수 없어요.",
+          );
+      })
+      .finally(() => {
+        if (!cancelled) setDraftReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey, gameId, createPreview]);
   const title =
     gameDraft?.gameId === gameId ? gameDraft.title : (game?.title ?? "");
   const description =
     gameDraft?.gameId === gameId
       ? gameDraft.description
       : (game?.description ?? "");
+  const isGameDirty = Boolean(
+    game && (title !== game.title || description !== (game.description ?? "")),
+  );
+  const hasUnsavedChanges = isGameDirty || dirtyCandidates.size > 0;
+  useEffect(() => {
+    if (!draftReady || !game) return;
+    latestDraft.current = hasUnsavedChanges
+      ? {
+          title,
+          description,
+          items: [...candidateDrafts.values()].map(({ id, name, file }) => ({
+            id,
+            name,
+            file,
+          })),
+        }
+      : null;
+    const timer = window.setTimeout(() => {
+      void writeCreateDraft(draftKey, latestDraft.current).catch(() =>
+        setNotice(
+          "수정 내용의 임시 저장에 실패했어요. 저장 버튼으로 변경사항을 반영해주세요.",
+        ),
+      );
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [
+    draftReady,
+    game,
+    title,
+    description,
+    candidateDrafts,
+    hasUnsavedChanges,
+    draftKey,
+  ]);
+  useEffect(() => {
+    const flush = () => {
+      if (latestDraft.current)
+        void writeCreateDraft(draftKey, latestDraft.current).catch(
+          () => undefined,
+        );
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [draftKey]);
+
+  function handleBack() {
+    if (isSavingGame) return;
+    onBack();
+  }
 
   function updateGameDraft(
     patch: Partial<Omit<NonNullable<typeof gameDraft>, "gameId">>,
@@ -432,6 +671,7 @@ function WorldcupDetailEditor({
   }
 
   async function handleSaveGame() {
+    setNotice(null);
     if (!title.trim()) {
       setErrorMessage("제목을 입력해주세요.");
       return;
@@ -446,6 +686,8 @@ function WorldcupDetailEditor({
         title: title.trim(),
       });
       await refreshDetail();
+      setGameDraft(null);
+      setNotice("월드컵 정보를 저장했어요.");
     } catch {
       setErrorMessage("월드컵 정보를 저장하지 못했습니다.");
     } finally {
@@ -457,18 +699,32 @@ function WorldcupDetailEditor({
     item: BackendWorldcupItem,
     input: { image_url: string; name: string },
   ) {
+    setNotice(null);
     await updateWorldcupItem(item.id, input);
+    setRestoredDraft((current) =>
+      current
+        ? {
+            ...current,
+            items: current.items.filter((draft) => draft.id !== item.id),
+          }
+        : null,
+    );
     await refreshDetail();
+    setNotice("후보를 저장했어요.");
   }
 
   async function handleDeleteItem(itemId: number) {
+    setNotice(null);
     await deleteWorldcupItem(itemId);
     await refreshDetail();
+    setNotice("후보를 삭제했어요.");
   }
 
   async function handleAddItem(input: { image_url: string; name: string }) {
+    setNotice(null);
     await createWorldcupItem(gameId, input);
     await refreshDetail();
+    setNotice("새 후보를 추가했어요.");
   }
 
   return (
@@ -476,15 +732,21 @@ function WorldcupDetailEditor({
       <PageIntro
         label="내 월드컵 / 수정"
         title="월드컵 수정하기"
-        description="소개와 후보를 하나씩 다듬어보세요."
+        description="작성 내용과 사진은 이 브라우저에 임시 저장돼요. 저장 버튼을 누르면 월드컵에 반영됩니다."
         action={
-          <button className={ui.secondary} type="button" onClick={onBack}>
+          <button
+            className={ui.secondary}
+            type="button"
+            disabled={isSavingGame}
+            onClick={handleBack}
+          >
             <ArrowLeft size={15} /> 목록
           </button>
         }
       />
 
       <div className={ui.editorBody}>
+        {notice && <StatusNotice>{notice}</StatusNotice>}
         {isLoading && (
           <div className="rounded-[18px] border border-[#e2e9ed] bg-white px-4 py-8 text-center text-[15px] tracking-[-0.224px] text-[#63727c]">
             상세 정보를 불러오는 중입니다.
@@ -497,7 +759,7 @@ function WorldcupDetailEditor({
           </div>
         )}
 
-        {game && (
+        {game && draftReady && (
           <>
             <div className={surfaceCardClass}>
               <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end md:gap-5">
@@ -516,7 +778,7 @@ function WorldcupDetailEditor({
                 <button
                   className={`w-full md:w-auto ${primaryButtonClass}`}
                   type="button"
-                  disabled={isSavingGame}
+                  disabled={isSavingGame || !isGameDirty || !title.trim()}
                   onClick={handleSaveGame}
                 >
                   <Check className="size-4" />
@@ -549,16 +811,25 @@ function WorldcupDetailEditor({
                 </div>
               </div>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {game.items.map((item) => (
+                {game.items.map((item, index) => (
                   <CandidateEditorCard
                     key={`${item.id}-${item.name}-${item.image_url}`}
                     item={item}
+                    number={index + 1}
+                    onDirty={trackDirty}
+                    draft={restoredDraft?.items.find(
+                      (draft) => draft.id === item.id,
+                    )}
                     canDelete={game.items.length > 2}
                     onDelete={() => handleDeleteItem(item.id)}
                     onSave={(input) => handleSaveItem(item, input)}
                   />
                 ))}
-                <AddCandidateCard onAdd={handleAddItem} />
+                <AddCandidateCard
+                  onAdd={handleAddItem}
+                  onDirty={trackDirty}
+                  draft={restoredDraft?.items.find((draft) => draft.id === -1)}
+                />
               </div>
             </div>
           </>
@@ -579,26 +850,42 @@ function CandidateEditorCard({
   item,
   onDelete,
   onSave,
+  number,
+  onDirty,
+  draft,
 }: {
   canDelete: boolean;
   item: BackendWorldcupItem;
   onDelete: () => Promise<void>;
   onSave: (input: { image_url: string; name: string }) => Promise<void>;
+  number: number;
+  onDirty: (id: number, dirty: boolean, draft?: DraftItem) => void;
+  draft?: DraftItem;
 }) {
-  const [name, setName] = useState(item.name);
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [name, setName] = useState(draft?.name ?? item.name);
+  const [file, setFile] = useState<File | null>(draft?.file ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    draft?.previewUrl ?? null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const createPreview = useImagePreviews();
+  const dirty = name !== item.name || Boolean(file);
+  useEffect(() => {
+    onDirty(item.id, dirty, { id: item.id, name, file, previewUrl });
+  }, [item.id, dirty, name, file, previewUrl, onDirty]);
+  useEffect(() => () => onDirty(item.id, false), [item.id, onDirty]);
 
   function updateFile(nextFile: File | null) {
+    if (isSaving || isDeleting) return;
     setFile(nextFile);
-    setPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : null);
+    setPreviewUrl(createPreview(nextFile));
   }
 
   function handlePaste(event: ClipboardEvent<HTMLElement>) {
+    if (isSaving || isDeleting) return;
     const pastedFile = getPastedImageFile(event);
 
     if (!pastedFile) {
@@ -623,6 +910,9 @@ function CandidateEditorCard({
     try {
       const imageUrl = file ? await uploadImageFile(file) : item.image_url;
       await onSave({ image_url: imageUrl, name: name.trim() });
+      setName(name.trim());
+      setFile(null);
+      setPreviewUrl(null);
     } catch {
       setErrorMessage("후보를 저장하지 못했습니다.");
     } finally {
@@ -631,6 +921,12 @@ function CandidateEditorCard({
   }
 
   async function handleDelete() {
+    if (
+      !window.confirm(
+        `‘${item.name}’ 후보를 삭제할까요? 삭제한 후보는 복구할 수 없어요.`,
+      )
+    )
+      return;
     setIsDeleting(true);
     setErrorMessage(null);
 
@@ -648,19 +944,24 @@ function CandidateEditorCard({
       tabIndex={0}
       onPasteCapture={handlePaste}
     >
+      <div className={ui.candidateHeading}>
+        <span>후보 {number}</span>
+        <span>{dirty ? "변경사항 있음" : "등록 완료"}</span>
+      </div>
       <div className="grid grid-cols-[1fr_40px] items-center gap-2">
         <input
           className={inputClass}
           aria-label="후보 이름"
           placeholder="후보 이름"
           value={name}
+          disabled={isSaving || isDeleting}
           onChange={(event) => setName(event.target.value)}
         />
         <button
           className="grid size-10 place-items-center rounded-xl bg-[#f7fafc] text-[#b42318] active:scale-95 disabled:text-[#c7c7cc]"
           type="button"
           aria-label="후보 삭제"
-          disabled={!canDelete || isDeleting}
+          disabled={!canDelete || isDeleting || isSaving}
           onClick={handleDelete}
         >
           <Trash2 className="size-4" />
@@ -671,10 +972,10 @@ function CandidateEditorCard({
           <Image
             alt={`${name || item.name} 후보 이미지`}
             className="size-full object-cover"
-            height={80}
+            fill
+            sizes="96px"
             src={previewUrl ?? item.image_url}
             unoptimized
-            width={80}
           />
         </div>
         <div className="min-w-0">
@@ -683,11 +984,13 @@ function CandidateEditorCard({
             className="sr-only"
             type="file"
             accept="image/*"
+            disabled={isSaving || isDeleting}
             onChange={(event) => updateFile(event.target.files?.[0] ?? null)}
           />
           <button
             className={fileButtonClass}
             type="button"
+            disabled={isSaving || isDeleting}
             onClick={() => fileInputRef.current?.click()}
           >
             <ImagePlus className="size-4" />
@@ -698,12 +1001,15 @@ function CandidateEditorCard({
       <button
         className={`mt-5 w-full ${secondaryButtonClass}`}
         type="button"
-        disabled={isSaving}
+        disabled={isSaving || isDeleting || !dirty || !name.trim()}
         onClick={handleSave}
       >
         <Check className="size-4" />
         {isSaving ? "저장 중" : "후보 저장"}
       </button>
+      {!name.trim() && (
+        <p className={ui.editorHint}>후보 이름을 입력해주세요.</p>
+      )}
       {errorMessage && (
         <p className="mt-2 rounded-xl bg-[#fff1f0] px-3 py-2 text-[13px] tracking-[-0.12px] text-[#b42318]">
           {errorMessage}
@@ -715,23 +1021,36 @@ function CandidateEditorCard({
 
 function AddCandidateCard({
   onAdd,
+  onDirty,
+  draft,
 }: {
   onAdd: (input: { image_url: string; name: string }) => Promise<void>;
+  onDirty: (id: number, dirty: boolean, draft?: DraftItem) => void;
+  draft?: DraftItem;
 }) {
-  const [name, setName] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [name, setName] = useState(draft?.name ?? "");
+  const [file, setFile] = useState<File | null>(draft?.file ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(
+    draft?.previewUrl ?? null,
+  );
   const [isAdding, setIsAdding] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canAdd = name.trim().length > 0 && file;
+  const createPreview = useImagePreviews();
+  const dirty = Boolean(name || file);
+  useEffect(() => {
+    onDirty(-1, dirty, { id: -1, name, file, previewUrl });
+  }, [dirty, name, file, previewUrl, onDirty]);
+  useEffect(() => () => onDirty(-1, false), [onDirty]);
 
   function updateFile(nextFile: File | null) {
     setFile(nextFile);
-    setPreviewUrl(nextFile ? URL.createObjectURL(nextFile) : null);
+    setPreviewUrl(createPreview(nextFile));
   }
 
   function handlePaste(event: ClipboardEvent<HTMLElement>) {
+    if (isAdding) return;
     const pastedFile = getPastedImageFile(event);
 
     if (!pastedFile) {
@@ -784,6 +1103,7 @@ function AddCandidateCard({
         className={`mt-4 ${inputClass}`}
         placeholder="후보 이름"
         value={name}
+        disabled={isAdding}
         onChange={(event) => setName(event.target.value)}
       />
       <div className="mt-4 grid grid-cols-[96px_1fr] items-center gap-4">
@@ -792,10 +1112,10 @@ function AddCandidateCard({
             <Image
               alt={`${name || "새 후보"} 미리보기`}
               className="size-full object-cover"
-              height={80}
+              fill
+              sizes="96px"
               src={previewUrl}
               unoptimized
-              width={80}
             />
           ) : (
             <ImagePlus className="size-5 text-[#63727c]" />
@@ -806,12 +1126,14 @@ function AddCandidateCard({
           className="sr-only"
           type="file"
           accept="image/*"
+          disabled={isAdding}
           onChange={(event) => updateFile(event.target.files?.[0] ?? null)}
         />
         <div className="min-w-0">
           <button
             className={fileButtonClass}
             type="button"
+            disabled={isAdding}
             onClick={() => fileInputRef.current?.click()}
           >
             <ImagePlus className="size-4" />
@@ -828,6 +1150,13 @@ function AddCandidateCard({
         <Plus className="size-4" />
         {isAdding ? "추가 중" : "후보 추가"}
       </button>
+      {!canAdd && (
+        <p className={ui.editorHint}>
+          {!name.trim()
+            ? "새 후보의 이름을 입력해주세요."
+            : "새 후보의 이미지를 선택해주세요."}
+        </p>
+      )}
       {errorMessage && (
         <p className="mt-2 rounded-xl bg-[#fff1f0] px-3 py-2 text-[13px] tracking-[-0.12px] text-[#b42318]">
           {errorMessage}
@@ -912,9 +1241,11 @@ function formatMyWorldcupDate(value: string) {
 function CreateWorldcupForm({
   onCancel,
   onComplete,
+  draftKey,
 }: {
   onCancel: () => void;
   onComplete: () => Promise<void>;
+  draftKey: string;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -923,11 +1254,158 @@ function CreateWorldcupForm({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [restored, setRestored] = useState(false);
+  const [draftStatus, setDraftStatus] = useState("임시 저장 준비 중");
+  const [discardedDraft, setDiscardedDraft] = useState<SavedCreateDraft | null>(
+    null,
+  );
+  const [progress, setProgress] = useState({
+    completed: 0,
+    total: 0,
+    phase: "",
+  });
+  const latestDraft = useRef<SavedCreateDraft | null>(null);
+  const submissionLock = useRef(false);
+  const created = useRef(false);
+  const [isCreated, setIsCreated] = useState(false);
+  const uploaded = useRef(new Map<number, { file: File; url: string }>());
+  const bulkInput = useRef<HTMLInputElement>(null);
+  const createPreview = useImagePreviews();
+  const hasDraft = Boolean(
+    title ||
+      description ||
+      items.length > 2 ||
+      items.some((item) => item.name || item.file),
+  );
+  const completeCount = items.filter(
+    (item) => item.name.trim() && item.file,
+  ).length;
+  const incompleteIndex = items.findIndex(
+    (item) => !item.name.trim() || !item.file,
+  );
+  const missing = !title.trim()
+    ? "월드컵 제목을 입력해주세요."
+    : incompleteIndex >= 0
+      ? `후보 ${incompleteIndex + 1}의 ${!items[incompleteIndex].name.trim() ? "이름을 입력" : "이미지를 선택"}해주세요.`
+      : null;
+  const canSubmit = ready && !missing && items.length >= 2;
 
-  const canSubmit =
-    title.trim().length > 0 &&
-    items.length >= 2 &&
-    items.every((item) => item.name.trim().length > 0 && item.file);
+  useEffect(() => {
+    let cancelled = false;
+    async function restore() {
+      try {
+        const saved = await readCreateDraft(draftKey);
+        if (cancelled) return;
+        if (saved && saved.items.length >= 2) {
+          setTitle(saved.title);
+          setDescription(saved.description);
+          setItems(
+            saved.items.map((item) => ({
+              ...item,
+              previewUrl: createPreview(item.file),
+            })),
+          );
+          setRestored(true);
+        }
+        setDraftStatus("이 브라우저에 자동으로 임시 저장됩니다.");
+      } catch {
+        if (!cancelled)
+          setDraftStatus(
+            "임시 저장을 사용할 수 없어요. 화면을 나가기 전에 등록해주세요.",
+          );
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    }
+    void restore();
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey, createPreview]);
+
+  useEffect(() => {
+    if (!ready || created.current) return;
+    latestDraft.current = hasDraft
+      ? {
+          title,
+          description,
+          items: items.map(({ id, name, file }) => ({ id, name, file })),
+        }
+      : null;
+    if (isSubmitting) return;
+    const timer = window.setTimeout(() => {
+      setDraftStatus("임시 저장 중…");
+      void writeCreateDraft(draftKey, latestDraft.current)
+        .then(() => {
+          setDraftStatus(
+            hasDraft
+              ? "작성 내용과 사진을 이 브라우저에 임시 저장했어요."
+              : "이 브라우저에 자동으로 임시 저장됩니다.",
+          );
+        })
+        .catch(() =>
+          setDraftStatus(
+            "임시 저장에 실패했어요. 화면을 나가기 전에 등록해주세요.",
+          ),
+        );
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [ready, title, description, items, hasDraft, isSubmitting, draftKey]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (latestDraft.current)
+        void writeCreateDraft(draftKey, latestDraft.current).catch(
+          () => undefined,
+        );
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [draftKey]);
+
+  function handleCancel() {
+    if (isSubmitting) return;
+    onCancel();
+  }
+
+  async function discardDraft() {
+    const previous = {
+      title,
+      description,
+      items: items.map(({ id, name, file }) => ({ id, name, file })),
+    };
+    latestDraft.current = null;
+    try {
+      await writeCreateDraft(draftKey, null);
+      setDiscardedDraft(previous);
+      setTitle("");
+      setDescription("");
+      setItems(Array.from({ length: 2 }, (_, index) => createDraftItem(index)));
+      setRestored(false);
+      uploaded.current.clear();
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage("임시 저장 내용을 지우지 못했어요. 다시 시도해주세요.");
+    }
+  }
+
+  function undoDiscard() {
+    if (!discardedDraft) return;
+    setTitle(discardedDraft.title);
+    setDescription(discardedDraft.description);
+    setItems(
+      discardedDraft.items.map((item) => ({
+        ...item,
+        previewUrl: createPreview(item.file),
+      })),
+    );
+    setDiscardedDraft(null);
+    setRestored(true);
+  }
 
   function updateItem(id: number, patch: Partial<DraftItem>) {
     setItems((current) =>
@@ -938,11 +1416,34 @@ function CreateWorldcupForm({
   function updateItemFile(id: number, file: File | null) {
     updateItem(id, {
       file,
-      previewUrl: file ? URL.createObjectURL(file) : null,
+      previewUrl: createPreview(file),
+    });
+  }
+
+  function addImages(files: FileList | null) {
+    const images = Array.from(files ?? []).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+    if (!images.length) return;
+    const drafts = images.map((file, index) => ({
+      ...createDraftItem(items.length + index),
+      name: file.name.replace(/\.[^.]+$/, ""),
+      file,
+      previewUrl: createPreview(file),
+    }));
+    setItems((current) => {
+      const next = [...current];
+      drafts.forEach((draft) => {
+        const empty = next.findIndex((item) => !item.name && !item.file);
+        if (empty >= 0) next[empty] = draft;
+        else next.push(draft);
+      });
+      return next;
     });
   }
 
   function handleItemPaste(id: number, event: ClipboardEvent<HTMLElement>) {
+    if (isSubmitting || isCreated) return;
     const file = Array.from(event.clipboardData.files).find((pastedFile) =>
       pastedFile.type.startsWith("image/"),
     );
@@ -959,36 +1460,66 @@ function CreateWorldcupForm({
   }
 
   async function handleSubmit() {
+    if (!canSubmit || submissionLock.current) return;
+    submissionLock.current = true;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const uploadedItems = await Promise.all(
-        items.map(async (item) => {
-          if (!item.file) {
-            throw new Error("후보 이미지를 선택해주세요.");
-          }
-
-          return {
-            image_url: await uploadImageFile(item.file),
+      if (!created.current) {
+        let completed = 0;
+        setProgress({ completed, total: items.length, phase: "이미지 업로드" });
+        for (let start = 0; start < items.length; start += 3) {
+          const results = await Promise.allSettled(
+            items.slice(start, start + 3).map(async (item) => {
+              if (!item.file) throw new Error("이미지가 없는 후보가 있어요.");
+              const cached = uploaded.current.get(item.id);
+              const url =
+                cached?.file === item.file
+                  ? cached.url
+                  : await uploadImageFile(item.file);
+              uploaded.current.set(item.id, { file: item.file, url });
+              completed += 1;
+              setProgress({
+                completed,
+                total: items.length,
+                phase: "이미지 업로드",
+              });
+            }),
+          );
+          if (results.some((result) => result.status === "rejected"))
+            throw new Error("upload");
+        }
+        setProgress({
+          completed: items.length,
+          total: items.length,
+          phase: "월드컵 등록",
+        });
+        await createWorldcupGame({
+          game: {
+            description: description.trim() || undefined,
+            title: title.trim(),
+          },
+          items: items.map((item) => ({
             name: item.name.trim(),
-          };
-        }),
-      );
-      await createWorldcupGame({
-        game: {
-          description: description.trim() || undefined,
-          title: title.trim(),
-        },
-        items: uploadedItems,
-      });
+            image_url: uploaded.current.get(item.id)!.url,
+          })),
+        });
+        created.current = true;
+        setIsCreated(true);
+        latestDraft.current = null;
+        await writeCreateDraft(draftKey, null).catch(() => undefined);
+      }
       await onComplete();
     } catch {
       setErrorMessage(
-        "월드컵 생성에 실패했습니다. 이미지 업로드 설정과 서버 로그를 확인해주세요.",
+        created.current
+          ? "월드컵은 등록됐지만 목록을 불러오지 못했어요. 아래 버튼으로 목록을 다시 확인해주세요."
+          : "월드컵을 만들지 못했어요. 입력한 내용은 유지됩니다. 연결을 확인하고 다시 시도해주세요.",
       );
     } finally {
       setIsSubmitting(false);
+      submissionLock.current = false;
     }
   }
 
@@ -1001,128 +1532,218 @@ function CreateWorldcupForm({
       />
 
       <div className={ui.editorBody}>
-        <div className={`${ui.surface} ${ui.editorSection}`}>
-          <h2 className={ui.editorSectionTitle}>
-            <span>01</span> 기본 정보
-          </h2>
-          <label className="block">
-            <span className="text-[13px] tracking-[-0.12px] text-[#63727c]">
-              제목
-            </span>
-            <input
-              className="mt-2 h-12 w-full rounded-xl border border-[#dce5eb] bg-white px-4 text-[17px] tracking-[-0.374px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10"
-              placeholder="예: 내 최애 간식 월드컵"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-            />
-          </label>
-          <label className="mt-4 block">
-            <span className="text-[13px] tracking-[-0.12px] text-[#63727c]">
-              설명
-            </span>
-            <textarea
-              className="mt-2 min-h-24 w-full resize-none rounded-xl border border-[#dce5eb] bg-white px-4 py-3 text-[15px] tracking-[-0.224px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10"
-              placeholder="간단한 소개를 적어주세요"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </label>
-        </div>
-
-        <div className={`${ui.surface} ${ui.editorSection}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className={ui.editorSectionTitle}>
-                <span>02</span> 후보 모으기
-              </h2>
-              <p className="mt-1 text-[14px] tracking-[-0.224px] text-[#63727c]">
-                이미지는 선택하거나 붙여넣을 수 있어요. 최소 2개부터 시작해요.
-              </p>
-            </div>
-            <button
-              className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#dceef7] text-[#245a7a] active:scale-95"
-              type="button"
-              aria-label="후보 추가"
-              onClick={() =>
-                setItems((current) => [
-                  ...current,
-                  createDraftItem(current.length),
-                ])
-              }
-            >
-              <Plus className="size-4" />
+        <div className={ui.draftBar}>
+          <p role="status">
+            {discardedDraft && !hasDraft
+              ? "입력 내용을 초기화했어요. 되돌리기로 복원할 수 있어요. "
+              : restored
+                ? "이전에 작성한 내용을 복원했어요. "
+                : ""}
+            {draftStatus}
+          </p>
+          {discardedDraft && !hasDraft && (
+            <button type="button" disabled={isSubmitting} onClick={undoDiscard}>
+              되돌리기
             </button>
+          )}
+          {hasDraft && (
+            <button
+              type="button"
+              disabled={isSubmitting || !ready || isCreated}
+              onClick={discardDraft}
+            >
+              초기화
+            </button>
+          )}
+        </div>
+        <fieldset
+          className={ui.editorFields}
+          disabled={isSubmitting || !ready || isCreated}
+        >
+          <div className={`${ui.surface} ${ui.editorSection}`}>
+            <h2 className={ui.editorSectionTitle}>
+              <span>01</span> 기본 정보
+            </h2>
+            <label className="block">
+              <span className="text-[13px] tracking-[-0.12px] text-[#63727c]">
+                제목
+                <span className={ui.requiredLabel}>필수</span>
+              </span>
+              <input
+                className="mt-2 h-12 w-full rounded-xl border border-[#dce5eb] bg-white px-4 text-[17px] tracking-[-0.374px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10"
+                placeholder="예: 내 최애 간식 월드컵"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="text-[13px] tracking-[-0.12px] text-[#63727c]">
+                설명
+                <span className={ui.optionalLabel}>선택</span>
+              </span>
+              <textarea
+                className="mt-2 min-h-24 w-full resize-none rounded-xl border border-[#dce5eb] bg-white px-4 py-3 text-[15px] tracking-[-0.224px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10"
+                placeholder="간단한 소개를 적어주세요"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </label>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {items.map((item, index) => (
-              <div
-                key={item.id}
-                className="rounded-2xl border border-[#eeeeef] p-3 outline-none transition focus-within:border-[#b9b9bf] focus:border-[#b9b9bf]"
-                tabIndex={0}
-                onPasteCapture={(event) => handleItemPaste(item.id, event)}
-              >
-                <div className="grid grid-cols-[1fr_32px] items-center gap-2">
-                  <input
-                    className="h-11 w-full rounded-xl border border-[#dce5eb] bg-white px-3 text-[15px] tracking-[-0.224px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10"
-                    aria-label={`후보 ${index + 1} 이름`}
-                    placeholder="후보 이름"
-                    value={item.name}
-                    onChange={(event) =>
-                      updateItem(item.id, { name: event.target.value })
-                    }
-                  />
-                  <button
-                    className="grid size-8 place-items-center rounded-xl text-[#b42318] disabled:text-[#c7c7cc]"
-                    type="button"
-                    aria-label="후보 삭제"
-                    disabled={items.length <= 2}
-                    onClick={() =>
-                      setItems((current) =>
-                        current.filter(
-                          (currentItem) => currentItem.id !== item.id,
-                        ),
-                      )
-                    }
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-                <div className="mt-3 grid grid-cols-[82px_1fr] items-center gap-3">
-                  <div className="grid size-20 place-items-center overflow-hidden rounded-xl bg-[#f1f6f9]">
-                    {item.previewUrl ? (
-                      <Image
-                        alt={`${item.name || "후보"} 미리보기`}
-                        className="size-full object-cover"
-                        height={80}
-                        src={item.previewUrl}
-                        unoptimized
-                        width={80}
-                      />
-                    ) : (
-                      <ImagePlus className="size-5 text-[#63727c]" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <label className={fileButtonClass}>
-                      <ImagePlus className="size-4" />
-                      이미지 선택
-                      <input
-                        className="sr-only"
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          updateItemFile(item.id, file);
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
+          <div className={`${ui.surface} ${ui.editorSection}`}>
+            <div className={ui.candidateToolbar}>
+              <div>
+                <h2 className={ui.editorSectionTitle}>
+                  <span>02</span> 후보 모으기
+                </h2>
+                <p className="mt-1 text-[14px] tracking-[-0.224px] text-[#63727c]">
+                  등록 준비 {completeCount}/{items.length}개 · 이름과 이미지가
+                  필요해요.
+                </p>
               </div>
-            ))}
+              <div className={ui.candidateToolbarActions}>
+                <input
+                  ref={bulkInput}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="sr-only"
+                  aria-label="후보 이미지 여러 장 선택"
+                  onChange={(event) => {
+                    addImages(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  className={fileButtonClass}
+                  onClick={() => bulkInput.current?.click()}
+                >
+                  <ImagePlus size={16} /> 여러 장 추가
+                </button>
+                <button
+                  className={ui.primary}
+                  type="button"
+                  aria-label="후보 추가"
+                  onClick={() =>
+                    setItems((current) => [
+                      ...current,
+                      createDraftItem(current.length),
+                    ])
+                  }
+                >
+                  <Plus className="size-4" />
+                  후보 추가
+                </button>
+              </div>
+            </div>
+            <p className={ui.editorHint}>
+              후보 카드에 사진을 붙여넣거나 여러 장을 한 번에 선택할 수 있어요.
+            </p>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {items.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-[#eeeeef] p-3 outline-none transition focus-within:border-[#b9b9bf] focus:border-[#b9b9bf]"
+                  tabIndex={0}
+                  onPasteCapture={(event) => handleItemPaste(item.id, event)}
+                >
+                  <div className={ui.candidateHeading}>
+                    <span>후보 {index + 1}</span>
+                    <span>
+                      {item.name.trim() && item.file
+                        ? "준비 완료"
+                        : "입력 필요"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_32px] items-center gap-2">
+                    <input
+                      className="h-11 w-full rounded-xl border border-[#dce5eb] bg-white px-3 text-[15px] tracking-[-0.224px] outline-none transition focus:border-[#27729b] focus:ring-4 focus:ring-[#27729b]/10"
+                      aria-label={`후보 ${index + 1} 이름`}
+                      placeholder="후보 이름"
+                      value={item.name}
+                      onChange={(event) =>
+                        updateItem(item.id, { name: event.target.value })
+                      }
+                    />
+                    <button
+                      className="grid size-8 place-items-center rounded-xl text-[#b42318] disabled:text-[#c7c7cc]"
+                      type="button"
+                      aria-label="후보 삭제"
+                      disabled={items.length <= 2}
+                      onClick={() =>
+                        setItems((current) =>
+                          current.filter(
+                            (currentItem) => currentItem.id !== item.id,
+                          ),
+                        )
+                      }
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-[82px_1fr] items-center gap-3">
+                    <div
+                      className={`${previewImageClass} grid size-20 place-items-center`}
+                    >
+                      {item.previewUrl ? (
+                        <Image
+                          alt={`${item.name || "후보"} 미리보기`}
+                          className="size-full object-cover"
+                          fill
+                          sizes="80px"
+                          src={item.previewUrl}
+                          unoptimized
+                        />
+                      ) : (
+                        <ImagePlus className="size-5 text-[#63727c]" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <label className={fileButtonClass}>
+                        <ImagePlus className="size-4" />
+                        이미지 선택
+                        <input
+                          className="sr-only"
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null;
+                            updateItemFile(item.id, file);
+                            event.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {item.file && (
+                        <button
+                          className={ui.clearImage}
+                          type="button"
+                          onClick={() => updateItemFile(item.id, null)}
+                        >
+                          사진 지우기
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </fieldset>
+
+        {isSubmitting && (
+          <div className={ui.uploadProgress} role="status" aria-live="polite">
+            <span>
+              {progress.phase} · {progress.completed}/{progress.total}개
+            </span>
+            <progress
+              value={progress.completed}
+              max={progress.total || 1}
+              aria-label="이미지 업로드 진행률"
+            />
+          </div>
+        )}
 
         {errorMessage && (
           <p className="rounded-2xl bg-[#fff1f0] px-4 py-3 text-center text-[14px] leading-[1.43] tracking-[-0.224px] text-[#b42318]">
@@ -1131,16 +1752,30 @@ function CreateWorldcupForm({
         )}
 
         <div className={ui.editorActions}>
-          <button className={ui.secondary} type="button" onClick={onCancel}>
+          <p className={ui.editorHint}>
+            {!isSubmitting && !isCreated
+              ? (missing ?? "모든 후보가 준비됐어요.")
+              : ""}
+          </p>
+          <button
+            className={ui.secondary}
+            type="button"
+            disabled={isSubmitting || !ready}
+            onClick={handleCancel}
+          >
             취소
           </button>
           <button
             className={ui.primary}
             type="button"
-            disabled={!canSubmit || isSubmitting}
+            disabled={(!canSubmit && !isCreated) || isSubmitting}
             onClick={handleSubmit}
           >
-            {isSubmitting ? "만드는 중" : "월드컵 만들기"}
+            {isSubmitting
+              ? "만드는 중…"
+              : isCreated
+                ? "목록 다시 확인"
+                : "월드컵 만들기"}
           </button>
         </div>
       </div>
