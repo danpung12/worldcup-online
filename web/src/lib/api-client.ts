@@ -1,12 +1,16 @@
-const defaultApiBaseUrl =
+const defaultBackendBaseUrl =
   process.env.NODE_ENV === "production"
     ? "https://worldcupapi.duckdns.org"
     : "http://localhost:4000";
 
-export const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_URL ?? defaultApiBaseUrl;
+const legacyApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+export const apiBaseUrl = "/api";
 export const socketBaseUrl =
-  process.env.NEXT_PUBLIC_SOCKET_URL ?? apiBaseUrl;
+  process.env.NEXT_PUBLIC_SOCKET_URL ??
+  (legacyApiUrl && /^https?:\/\//.test(legacyApiUrl)
+    ? legacyApiUrl.replace(/\/+$/, "")
+    : defaultBackendBaseUrl);
 
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -18,6 +22,7 @@ function isRefreshRequest(input: RequestInfo | URL) {
 
 async function refreshAccessToken() {
   refreshPromise ??= fetch(`${apiBaseUrl}/auth/refresh`, {
+    cache: "no-store",
     credentials: "include",
     method: "POST",
   })
@@ -36,6 +41,7 @@ export async function fetchWithAuthRefresh(
 ) {
   const requestInit: RequestInit = {
     ...init,
+    cache: "no-store",
     credentials: init.credentials ?? "include",
   };
   const response = await fetch(input, requestInit);

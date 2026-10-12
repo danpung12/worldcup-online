@@ -27,6 +27,7 @@ export async function fetchAuthMe() {
 
 export async function logoutAuth() {
   await fetch(`${apiBaseUrl}/auth/logout`, {
+    cache: "no-store",
     credentials: "include",
     method: "POST",
   });
