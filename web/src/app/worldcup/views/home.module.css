@@ -140,13 +140,6 @@
 .hero h1 > span {
   color: var(--home-accent);
 }
-.heroDescription {
-  margin-top: 14px;
-  color: #5f7380;
-  font-size: 14px;
-  line-height: 1.65;
-  letter-spacing: -0.2px;
-}
 .heroShapes {
   position: absolute;
   inset: 0;
@@ -575,9 +568,6 @@
   .heroShapes {
     opacity: 0.7;
   }
-  .heroDescription {
-    max-width: 390px;
-  }
 }
 
 @media (max-width: 639px) {
@@ -649,10 +639,6 @@
   .hero h1 {
     font-size: 32px;
     letter-spacing: -1.4px;
-  }
-  .heroDescription {
-    margin-top: 13px;
-    font-size: 12px;
   }
   .heroShapes {
     opacity: 0.48;

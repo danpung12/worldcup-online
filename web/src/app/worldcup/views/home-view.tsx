@@ -74,9 +74,6 @@ export function HomeView({
             <br />
             <span>온라인 이상형 월드컵.</span>
           </h1>
-          <p className={styles.heroDescription}>
-            혼자 즐겨도, 친구와 함께해도.
-          </p>
         </div>
       </div>
 
@@ -85,7 +82,7 @@ export function HomeView({
         id="worldcup-list"
       >
         <div className={styles.catalogHeading}>
-          <h2>어떤 월드컵을 해볼까요?</h2>
+          <h2>월드컵 목록</h2>
         </div>
         <div className={styles.toolbar}>
           <div className={styles.searchBox} role="search">
@@ -93,7 +90,7 @@ export function HomeView({
             <input
               aria-label="월드컵 검색"
               type="search"
-              placeholder="어떤 취향을 찾고 있나요?"
+              placeholder="월드컵 검색"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
             />
@@ -185,13 +182,13 @@ export function HomeView({
               </span>
               <h3>
                 {normalizedSearchQuery
-                  ? "아직 찾는 월드컵이 없어요"
-                  : "첫 번째 월드컵을 기다리고 있어요"}
+                  ? "검색 결과가 없습니다."
+                  : "등록된 월드컵이 없습니다."}
               </h3>
               <p>
                 {normalizedSearchQuery
-                  ? "다른 검색어로 새로운 취향을 찾아보세요."
-                  : "상단의 만들기 버튼으로 나만의 월드컵을 시작해 보세요."}
+                  ? "다른 검색어로 검색해주세요."
+                  : "만들기 버튼으로 월드컵을 등록할 수 있습니다."}
               </p>
               {normalizedSearchQuery && (
                 <button
@@ -295,7 +292,7 @@ function HomeThumbnail({ src, title }: { src: string; title: string }) {
         aria-label={`${title} 대표 이미지 없음`}
       >
         <ImageIcon size={30} aria-hidden="true" />
-        <span>이미지를 준비하고 있어요</span>
+        <span>이미지 없음</span>
       </div>
     );
   }

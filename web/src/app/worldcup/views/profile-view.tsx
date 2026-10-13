@@ -168,7 +168,7 @@ export function ProfileView({
       await onComplete({ name: nickname.trim(), avatar: avatar.image });
     } catch {
       setErrorMessage(
-        "백엔드 방 연결에 실패했습니다. 서버 실행과 CORS/소켓 설정을 확인해주세요.",
+        "방에 연결하지 못했습니다. 다시 시도해주세요.",
       );
     } finally {
       setIsSubmitting(false);
@@ -179,7 +179,7 @@ export function ProfileView({
     <section className={ui.page}>
       <PageIntro
         label={mode === "solo" ? "혼자 시작하기" : "함께 시작하기"}
-        title="어떤 이름으로 참여할까요?"
+        title="닉네임 설정"
         description={game.title}
       />
       <div className={ui.content}>
@@ -217,8 +217,6 @@ export function ProfileView({
           <div>
             <p className={ui.profileHint}>
               친구들이 알아볼 수 있는 이름을 정해주세요.
-              <br />
-              로그인 없이도 바로 참여할 수 있어요.
             </p>
             <label className="block">
               <span className="text-[13px] tracking-[-0.12px] text-[#63727c]">
@@ -239,7 +237,7 @@ export function ProfileView({
               onClick={handleSubmit}
             >
               <Check className="size-4" />
-              {isSubmitting ? "입장 중" : "이 이름으로 시작하기"}
+              {isSubmitting ? "입장 중" : "참여하기"}
             </button>
             {errorMessage && (
               <p className="mt-3 text-center text-[13px] leading-[1.4] tracking-[-0.12px] text-[#b42318]">

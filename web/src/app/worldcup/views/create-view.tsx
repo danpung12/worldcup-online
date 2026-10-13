@@ -182,9 +182,8 @@ export function CreateView({
     return (
       <section className={ui.page}>
         <PageIntro
-          label="내 월드컵"
-          title="나만의 월드컵을 만들어보세요."
-          description="로그인하면 월드컵을 만들고, 후보와 소개를 관리할 수 있어요."
+          title="내 월드컵"
+          description="월드컵을 만들려면 로그인이 필요합니다."
         />
         <div className={`${ui.content} text-center`}>
           <button className={ui.primary} type="button" onClick={onLogin}>
@@ -225,11 +224,7 @@ export function CreateView({
 
   return (
     <section className={ui.page}>
-      <PageIntro
-        label="MY PICKON"
-        title="내 월드컵"
-        description={`${authUser.nickname}님의 취향이 담긴 월드컵을 관리해보세요.`}
-      />
+      <PageIntro title="내 월드컵" />
 
       <div className={ui.editorBody}>
         {notice && <StatusNotice>{notice}</StatusNotice>}
@@ -245,9 +240,6 @@ export function CreateView({
             <strong className="block text-[18px] font-semibold leading-[1.2] tracking-[-0.12px] text-[#25343e] md:text-[21px] md:leading-[1.19] md:tracking-[0.231px]">
               새 월드컵 만들기
             </strong>
-            <span className="mt-1.5 block text-[15px] leading-[1.45] tracking-[-0.224px] text-[#63727c] md:mt-2 md:text-[17px] md:leading-[1.47] md:tracking-[-0.374px]">
-              주제를 정하고, 나만의 후보를 모아보세요.
-            </span>
           </span>
         </button>
 
@@ -387,9 +379,11 @@ function MyWorldcupCard({
               <h2 className="line-clamp-2 text-[18px] font-semibold leading-[1.2] tracking-[-0.12px] text-[#25343e] md:text-[20px] md:leading-[1.2] md:tracking-[-0.12px]">
                 {game.title}
               </h2>
-              <p className="mt-1 line-clamp-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c] md:text-[15px] md:leading-[1.45]">
-                {summary || "소개를 추가해 나만의 월드컵을 알려보세요."}
-              </p>
+              {summary && (
+                <p className="mt-1 line-clamp-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c] md:text-[15px] md:leading-[1.45]">
+                  {summary}
+                </p>
+              )}
               {sources.length > 0 && (
                 <details className={ui.editorSources}>
                   <summary>사진 출처 보기</summary>
@@ -732,7 +726,7 @@ function WorldcupDetailEditor({
       <PageIntro
         label="내 월드컵 / 수정"
         title="월드컵 수정하기"
-        description="작성 내용과 사진은 이 브라우저에 임시 저장돼요. 저장 버튼을 누르면 월드컵에 반영됩니다."
+        description="이 브라우저에 임시 저장 · 저장 버튼을 누르면 반영"
         action={
           <button
             className={ui.secondary}
@@ -1308,7 +1302,7 @@ function CreateWorldcupForm({
           );
           setRestored(true);
         }
-        setDraftStatus("이 브라우저에 자동으로 임시 저장됩니다.");
+        setDraftStatus("이 브라우저에 자동 임시 저장");
       } catch {
         if (!cancelled)
           setDraftStatus(
@@ -1340,8 +1334,8 @@ function CreateWorldcupForm({
         .then(() => {
           setDraftStatus(
             hasDraft
-              ? "작성 내용과 사진을 이 브라우저에 임시 저장했어요."
-              : "이 브라우저에 자동으로 임시 저장됩니다.",
+              ? "이 브라우저에 임시 저장 완료"
+              : "이 브라우저에 자동 임시 저장",
           );
         })
         .catch(() =>
@@ -1527,8 +1521,7 @@ function CreateWorldcupForm({
     <section className={ui.page}>
       <PageIntro
         label="내 월드컵 / 만들기"
-        title="어떤 취향을 나눠볼까요?"
-        description="제목과 후보 이미지만 있으면 나만의 월드컵이 완성돼요."
+        title="월드컵 만들기"
       />
 
       <div className={ui.editorBody}>

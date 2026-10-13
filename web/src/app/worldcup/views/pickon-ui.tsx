@@ -7,7 +7,7 @@ export function PageIntro({
   description,
   action,
 }: {
-  label: ReactNode;
+  label?: ReactNode;
   title: string;
   description?: string;
   action?: ReactNode;
@@ -16,7 +16,7 @@ export function PageIntro({
     <div className={styles.pageIntro}>
       <div className={styles.introInner}>
         <div className={styles.introCopy}>
-          <p className={styles.eyebrow}>{label}</p>
+          {label && <p className={styles.eyebrow}>{label}</p>}
           <h1>{title}</h1>
           {description && <p className={styles.description}>{description}</p>}
         </div>

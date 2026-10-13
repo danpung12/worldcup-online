@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
+  AlertCircle,
   ArrowDown,
   Check,
   Crown,
@@ -14,13 +15,13 @@ import {
   Users,
 } from "lucide-react";
 import {
-  type ChatResponse,
   type MatchResponse,
   type WorldcupItemResponse,
 } from "@/lib/room-socket";
 import type { WorldcupGame } from "@/lib/worldcup";
 import { type Player, useWorldcupStore } from "@/store/worldcup-store";
 import { MediaPreview } from "./media-preview";
+import type { ChatMessage } from "./chat-messages";
 import { getAvatarForName } from "./profile-view";
 import ui from "./pickon-ui.module.css";
 
@@ -72,14 +73,17 @@ export function LobbyView({
   game: WorldcupGame;
   isCurrentHost: boolean;
   isStarting: boolean;
-  messages: ChatResponse[];
+  messages: ChatMessage[];
   notice: string | null;
   onSendChat: (message: string) => void;
   onStart: (roundSize?: number) => void;
   roomCode: string;
 }) {
   const players = useWorldcupStore((state) => state.players);
-  const [hasCopiedInvite, setHasCopiedInvite] = useState(false);
+  const [inviteToast, setInviteToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedRoundSize, setSelectedRoundSize] = useState<
     number | undefined
@@ -96,12 +100,21 @@ export function LobbyView({
     game.participants === 2 ||
     game.participants === 4;
 
+  useEffect(() => {
+    if (!inviteToast) return;
+    const timer = window.setTimeout(() => setInviteToast(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [inviteToast]);
+
   async function copyInviteLink() {
     const inviteLink = `${window.location.origin}/room/${roomCode}`;
 
-    await navigator.clipboard.writeText(inviteLink);
-    setHasCopiedInvite(true);
-    window.setTimeout(() => setHasCopiedInvite(false), 1600);
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setInviteToast({ message: "초대 링크를 복사했습니다.", type: "success" });
+    } catch {
+      setInviteToast({ message: "초대 링크를 복사하지 못했습니다.", type: "error" });
+    }
   }
 
   return (
@@ -110,7 +123,7 @@ export function LobbyView({
         <p className={ui.eyebrow}>
           <Users size={15} aria-hidden="true" /> 함께하는 대기실
         </p>
-        <h1>{game.title}</h1>
+        <h1 title={game.title}>{game.title}</h1>
         <div className="mt-4 grid grid-cols-2 gap-2 md:hidden">
           <div className="min-w-0 rounded-[18px] border border-[#e2e9ed] bg-white px-3 py-3">
             <p className="text-[12px] tracking-[-0.12px] text-[#63727c]">
@@ -127,13 +140,13 @@ export function LobbyView({
                 : "border-[#e2e9ed] bg-white text-[#25343e]"
             }`}
             type="button"
-            aria-label="사전 설정"
+            aria-label="시작 라운드"
             disabled={!isCurrentHost}
             onClick={() => setIsSettingsOpen((isOpen) => !isOpen)}
           >
             <span className="min-w-0">
               <span className="block text-[12px] tracking-[-0.12px] text-[#63727c]">
-                사전 설정
+                시작 라운드
               </span>
               <strong className="block truncate text-[17px] tracking-[-0.374px]">
                 {activeRoundLabel}
@@ -142,11 +155,6 @@ export function LobbyView({
             {isCurrentHost && <SlidersHorizontal className="size-4 shrink-0" />}
           </button>
         </div>
-        {hasCopiedInvite && (
-          <p className="mt-2 px-1 text-[13px] tracking-[-0.12px] text-[#27729b]">
-            초대 링크를 복사했습니다.
-          </p>
-        )}
         {notice && (
           <p className="mt-2 px-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#b42318]">
             {notice}
@@ -158,13 +166,18 @@ export function LobbyView({
         <h2 className={ui.sectionLabel}>
           참여한 친구들 <span>{players.length}명</span>
         </h2>
-        <div className={ui.participantGrid}>
+        <div
+          className={ui.participantGrid}
+          role="region"
+          aria-label="참가자 목록"
+          tabIndex={0}
+        >
           {players.map((player) => (
-            <div key={player.id} className="w-[66px] shrink-0 text-center">
+            <div key={player.id} className={ui.participant}>
               <div className="relative mx-auto grid size-[58px] place-items-center rounded-full border border-[#dce5eb] bg-white">
                 <Image
                   alt={`${player.name} 아바타`}
-                  className="size-[58px]"
+                  className="size-full rounded-full object-cover"
                   height={58}
                   src={player.avatar}
                   unoptimized
@@ -184,7 +197,7 @@ export function LobbyView({
           {Array.from({ length: Math.min(emptyCount, 8) }).map((_, index) => (
             <div
               key={`empty-${index}`}
-              className="w-[66px] shrink-0 text-center"
+              className={ui.participant}
             >
               <div className="mx-auto grid size-[58px] place-items-center rounded-full border border-dashed border-[#dce5eb] bg-[#f7fafc] text-[12px] text-[#63727c]">
                 빈 자리
@@ -219,7 +232,7 @@ export function LobbyView({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[12px] tracking-[-0.12px] text-[#63727c]">
-                  사전 설정
+                  시작 라운드
                 </p>
                 <strong className="mt-1 block text-[24px] font-semibold tracking-[0.231px]">
                   {activeRoundLabel}
@@ -256,23 +269,16 @@ export function LobbyView({
           <div className="rounded-[18px] border border-[#e2e9ed] bg-white">
             <div className="border-b border-[#e2e9ed] px-4 py-4">
               <h2 className="text-[21px] font-semibold tracking-[0.231px]">
-                사전 설정
+                시작 라운드
               </h2>
-              <p className="mt-1 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
-                시작할 라운드 크기를 선택해주세요.
-              </p>
             </div>
             <div className="px-4 py-4">
               {roundSizeOptions.length > 0 ? (
                 <div>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-[15px] font-semibold tracking-[-0.224px] text-[#25343e]">
-                        라운드 선택
-                      </p>
-                      <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#63727c]">
-                        후보 {game.participants.toLocaleString()}개 중 시작할
-                        크기를 고르세요.
+                      <p className="text-[13px] leading-[1.4] tracking-[-0.12px] text-[#63727c]">
+                        후보 {game.participants.toLocaleString()}개
                       </p>
                     </div>
                     <Trophy className="size-5 shrink-0 text-[#27729b]" />
@@ -306,8 +312,8 @@ export function LobbyView({
         </section>
       )}
 
-      <section className="min-w-0 md:col-start-1">
-        <div className="h-[280px] md:h-[360px]">
+      <section className={ui.lobbyChat}>
+        <div className={ui.lobbyChatPanel}>
           <ChatPanel
             currentMemberId={currentMemberId}
             messages={messages}
@@ -316,6 +322,22 @@ export function LobbyView({
           />
         </div>
       </section>
+
+      {inviteToast && (
+        <div
+          className={ui.inviteToast}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {inviteToast.type === "success" ? (
+            <Check size={18} className="shrink-0 text-[#c9e1ee]" aria-hidden="true" />
+          ) : (
+            <AlertCircle size={18} className="shrink-0 text-[#ffd4a3]" aria-hidden="true" />
+          )}
+          <span>{inviteToast.message}</span>
+        </div>
+      )}
 
       <div className={ui.lobbyActions}>
         <div>
@@ -372,7 +394,7 @@ export function PlayView({
   currentMemberId: number | null;
   isSoloMode: boolean;
   isVoting: boolean;
-  messages: ChatResponse[];
+  messages: ChatMessage[];
   match: MatchResponse;
   notice: string | null;
   onSendChat: (message: string) => void;
@@ -639,7 +661,7 @@ function TieBreakerOverlay({
   if (isCompactBannerVisible) {
     const compactDescription = isCurrentUserTurn
       ? "아래 두 후보 중 하나를 선택하세요."
-      : "후보를 보며 채팅으로 의견을 나눠보세요.";
+      : null;
 
     return (
       <div className="pointer-events-none absolute inset-x-3 top-3 z-40 flex justify-center md:top-5">
@@ -658,9 +680,11 @@ function TieBreakerOverlay({
                 ? `${displayPlayer.name}님, 결과를 정해주세요!`
                 : `${displayPlayer.name}님이 결과를 정하고 있어요`}
             </p>
-            <p className="mt-1 text-[13px] font-normal leading-[1.35] tracking-[-0.12px] text-[#63727c]">
-              {compactDescription}
-            </p>
+            {compactDescription && (
+              <p className="mt-1 text-[13px] font-normal leading-[1.35] tracking-[-0.12px] text-[#63727c]">
+                {compactDescription}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -706,17 +730,17 @@ function ChatPanel({
   players,
 }: {
   currentMemberId: number | null;
-  messages: ChatResponse[];
+  messages: ChatMessage[];
   onSend: (message: string) => void;
   players: Player[];
 }) {
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const followsLatestRef = useRef(true);
-  const previousMessageCountRef = useRef(0);
+  const previousLastMessageKeyRef = useRef<string | null>(null);
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const chatGroups = messages.reduce<
-    Array<{ memberId: number; messages: ChatResponse[] }>
+    Array<{ memberId: number; messages: ChatMessage[] }>
   >((groups, chat) => {
     const memberId = Number(chat.memberId);
     const lastGroup = groups.at(-1);
@@ -735,6 +759,10 @@ function ChatPanel({
     const frame = window.requestAnimationFrame(() => {
       const scrollArea = scrollRef.current;
       if (!scrollArea) return;
+      const lastMessage = messages.at(-1);
+      const lastMessageKey = lastMessage
+        ? lastMessage.localId ?? JSON.stringify([lastMessage.memberId, lastMessage.createdAt, lastMessage.message])
+        : null;
 
       if (followsLatestRef.current) {
         scrollArea.scrollTo({
@@ -742,14 +770,14 @@ function ChatPanel({
           behavior: "instant",
         });
         setHasNewMessages(false);
-      } else if (messages.length > previousMessageCountRef.current) {
+      } else if (lastMessageKey !== previousLastMessageKeyRef.current) {
         setHasNewMessages(true);
       }
-      previousMessageCountRef.current = messages.length;
+      previousLastMessageKeyRef.current = lastMessageKey;
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [messages.length]);
+  }, [messages]);
 
   function handleChatScroll() {
     const scrollArea = scrollRef.current;
@@ -785,6 +813,8 @@ function ChatPanel({
       return;
     }
 
+    followsLatestRef.current = true;
+    setHasNewMessages(false);
     onSend(trimmedMessage);
     setMessage("");
   }
@@ -826,7 +856,7 @@ function ChatPanel({
 
             return (
               <div
-                key={`${group.memberId}-${group.messages[0]?.createdAt ?? groupIndex}`}
+                key={group.messages[0]?.localId ?? `${group.memberId}-${group.messages[0]?.createdAt ?? groupIndex}`}
                 className={`mt-3 flex items-start gap-2 first:mt-0 ${
                   isOwnGroup ? "justify-end" : ""
                 }`}
@@ -866,15 +896,17 @@ function ChatPanel({
 
                       return (
                         <div
-                          key={`${chat.memberId}-${chat.createdAt}-${messageIndex}`}
+                          key={chat.localId ?? `${chat.memberId}-${chat.createdAt}-${messageIndex}`}
                           className={`flex max-w-full items-end gap-1.5 ${
                             isOwnGroup ? "justify-end" : "justify-start"
                           }`}
                         >
-                          {isOwnGroup && isLastInGroup && (
-                            <time className="shrink-0 pb-0.5 text-[10px] leading-[1.3] tracking-[-0.08px] text-[#63727c] md:text-[11px]">
-                              {formatChatTime(chat.createdAt)}
-                            </time>
+                          {isOwnGroup && (chat.delivery || isLastInGroup) && (
+                            <span className="shrink-0 pb-0.5 text-[10px] leading-[1.3] tracking-[-0.08px] text-[#63727c] md:text-[11px]">
+                              {chat.delivery
+                                ? <span role="status">{chat.delivery === "sending" ? "전송 중" : "전송 확인 지연"}</span>
+                                : <time>{formatChatTime(chat.createdAt)}</time>}
+                            </span>
                           )}
                           <p
                             className={`w-fit min-w-0 max-w-full whitespace-pre-wrap break-words px-3 py-2 text-[15px] font-normal leading-[1.47] tracking-[-0.374px] md:py-2.5 md:text-[16px] ${
@@ -1014,28 +1046,25 @@ export function ResultView({
 
   return (
     <section className={ui.result}>
-      <p className={ui.eyebrow}>
-        <Trophy size={15} aria-hidden="true" /> 최종 결과
-      </p>
-      <h1>마지막까지 남은 단 하나의 픽.</h1>
-      <p className={ui.description}>오늘의 우승자를 소개합니다.</p>
+      <header className={ui.resultHeading}>
+        <p className={ui.resultBadge}>
+          <Trophy size={18} aria-hidden="true" />
+          {winner ? "최종 우승" : "최종 결과"}
+        </p>
+        <h1>{winner?.name ?? "우승자 확인 중"}</h1>
+      </header>
       <div className={ui.resultCard}>
         {winner ? (
-          <>
-            <MediaPreview
-              alt={`${winner.name} 우승 이미지`}
-              className={ui.resultImage}
-              src={winner.image_url}
-            />
-            <div className={ui.winnerInfo}>
-              <p>
-                <Trophy size={15} aria-hidden="true" /> 최종 우승
-              </p>
-              <h2>{winner.name}</h2>
-            </div>
-          </>
+          <MediaPreview
+            alt={`${winner.name} 우승 이미지`}
+            className={ui.resultImage}
+            eager
+            src={winner.image_url}
+          />
         ) : (
-          <p className={ui.empty}>결과 정보를 불러오는 중입니다.</p>
+          <p className={ui.empty} role="status">
+            결과 정보를 불러오는 중입니다.
+          </p>
         )}
       </div>
       <button

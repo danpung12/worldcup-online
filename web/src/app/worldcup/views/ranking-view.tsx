@@ -52,7 +52,7 @@ export function RankingView({
         title={game.title}
         description={
           hasNoWins
-            ? "첫 우승의 주인공은 누가 될까요?"
+            ? undefined
             : "마지막까지 선택받은 후보들을 만나보세요."
         }
       />
@@ -61,9 +61,6 @@ export function RankingView({
           <h2 className={ui.sectionLabel}>
             전체 순위 <span>{game.ranking.length}</span>
           </h2>
-          <div>
-            <p>최종 우승 횟수 기준 · 후보를 누르면 크게 볼 수 있어요.</p>
-          </div>
         </div>
         {hasNoWins && (
           <p className={ui.rankingNotice}>
@@ -104,10 +101,6 @@ export function RankingView({
           ))}
         </div>
         <div className={ui.rankingCta}>
-          <div>
-            <strong>나의 1위는 누구일까요?</strong>
-            <p>친구와 함께 고르고, 취향을 나눠보세요.</p>
-          </div>
           <button className={ui.primary} type="button" onClick={onJoin}>
             <Play size={15} aria-hidden="true" /> 함께하기
           </button>

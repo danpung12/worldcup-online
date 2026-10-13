@@ -17,16 +17,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createRoom,
   joinRoom,
-  onChatHistory,
-  onChatUpdate,
   onGameUpdate,
   onRoomUpdate,
   onSocketException,
   roomState,
-  sendChat,
   startGame,
   vote,
-  type ChatResponse,
   type GameUpdateResponse,
   type MatchResponse,
   type RoomMemberResponse,
@@ -50,6 +46,7 @@ import { RankingView } from "./worldcup/views/ranking-view";
 import { getDefaultRoundSize, LobbyView, PlayView, ResultView } from "./worldcup/views/room-views";
 import { getConfirmedMatchWinner, getGameTransitionKey } from "./worldcup/views/match-winner";
 import { useMatchReveal } from "./worldcup/views/use-match-reveal";
+import { useRoomChat } from "./worldcup/views/use-room-chat";
 
 type WorldcupAppProps = {
   initialGameId?: number;
@@ -365,7 +362,11 @@ export default function WorldcupApp({
     Boolean(initialRoomCode && !skipRoomRestore),
   );
   const [roomMode, setRoomMode] = useState<RoomMode>("multi");
-  const [chatMessages, setChatMessages] = useState<ChatResponse[]>([]);
+  const {
+    messages: chatMessages,
+    reset: resetChatMessages,
+    send: sendRoomChat,
+  } = useRoomChat();
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [voteStamps, setVoteStamps] = useState<VoteStamp[]>([]);
   const [tieBreakerMemberId, setTieBreakerMemberId] = useState<number | null>(null);
@@ -417,20 +418,6 @@ export default function WorldcupApp({
       if (shareToastTimerRef.current) {
         clearTimeout(shareToastTimerRef.current);
       }
-    };
-  }, []);
-
-  useEffect(() => {
-    const offChatHistory = onChatHistory((chats) => {
-      setChatMessages(chats ?? []);
-    });
-    const offChatUpdate = onChatUpdate((chat) => {
-      setChatMessages((current) => [...current, chat].slice(-50));
-    });
-
-    return () => {
-      offChatHistory();
-      offChatUpdate();
     };
   }, []);
 
@@ -863,7 +850,7 @@ export default function WorldcupApp({
     setWinnerId(null);
     setGameNotice(null);
     setActiveRoundSize(null);
-    setChatMessages([]);
+    resetChatMessages();
     setSelectedItemId(null);
     setVoteStamps([]);
     setRoomMode("multi");
@@ -885,6 +872,7 @@ export default function WorldcupApp({
     gameId = selectedGame.id,
   ) {
     setRoomMode("multi");
+    resetChatMessages();
 
     if (initialRoomCode) {
       const result = await joinRoom({
@@ -934,7 +922,7 @@ export default function WorldcupApp({
     setStoredRoomMember(nextRoomCode, memberContext);
     setStoredRoomMode(nextRoomCode, "multi");
     router.replace(`/room/${nextRoomCode}?fresh=1`);
-    setChatMessages([]);
+    resetChatMessages();
     enterLobby(
       nextRoomCode,
       mapRoomMembers(
@@ -999,7 +987,7 @@ export default function WorldcupApp({
       setStoredRoomMember(nextRoomCode, memberContext);
       setStoredRoomMode(nextRoomCode, "solo");
       window.history.replaceState(null, "", `/room/${nextRoomCode}`);
-      setChatMessages([]);
+      resetChatMessages();
       handleStartGame(roundSize);
     } catch {
       setIsStarting(false);
@@ -1037,7 +1025,7 @@ export default function WorldcupApp({
   }
 
   function handleSendChat(message: string) {
-    sendChat(message);
+    sendRoomChat(message, currentMember?.memberId ?? null);
   }
 
   function handleCreateClick() {
@@ -1083,7 +1071,7 @@ export default function WorldcupApp({
       setWinnerId(null);
       setGameNotice(null);
       setActiveRoundSize(null);
-      setChatMessages([]);
+      resetChatMessages();
       setSelectedItemId(null);
       setVoteStamps([]);
       setPlayers([]);
@@ -1242,9 +1230,6 @@ function RoomRestoreLoading() {
           <h1 className="mt-5 text-[21px] font-semibold leading-[1.19] tracking-[0.231px]">
             게임으로 돌아가는 중
           </h1>
-          <p className="mt-2 text-[14px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
-            네트워크 연결이 끊겼거나 새로고침된 경우에도 이어서 참여할 수 있도록 현재 상태를 확인하고 있습니다.
-          </p>
         </div>
       </section>
     </main>
@@ -1297,10 +1282,10 @@ function SoloStartModal({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[15px] font-semibold leading-[1.3] tracking-[-0.224px] text-[#25343e]">
-                라운드 선택
+                시작 라운드
               </p>
               <p className="mt-1 text-[13px] leading-[1.4] tracking-[-0.12px] text-[#63727c]">
-                후보 {game.participants.toLocaleString()}개 중 몇 강으로 시작할지 고르세요.
+                후보 {game.participants.toLocaleString()}개
               </p>
             </div>
             <Trophy className="size-5 shrink-0 text-[#27729b]" />
@@ -1659,9 +1644,6 @@ function LoginRequiredModal({
           <h2 className="text-[21px] font-semibold leading-[1.19] tracking-[0.231px] text-[#25343e]">
             로그인이 필요합니다.
           </h2>
-          <p className="mt-2 text-[15px] leading-[1.43] tracking-[-0.224px] text-[#63727c]">
-            로그인 하시겠습니까?
-          </p>
         </div>
         <div className="grid grid-cols-2 gap-px border-t border-[#edf1f4] bg-[#edf1f4]">
           <button
@@ -1669,14 +1651,14 @@ function LoginRequiredModal({
             type="button"
             onClick={onCancel}
           >
-            아니요
+            취소
           </button>
           <button
             className="h-12 bg-white text-[17px] font-semibold tracking-[-0.374px] text-[#27729b] active:scale-95"
             type="button"
             onClick={onConfirm}
           >
-            예
+            로그인
           </button>
         </div>
       </section>
